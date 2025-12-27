@@ -1,0 +1,149 @@
+vision: 将 CCCC Pair 从 Python 完全重写为 TypeScript，使用 WebUI 替代 TUI，实现通过 npx cccc 一键启动的现代化开发者工具
+sketch: '## Architecture
+
+
+  ```
+
+  cccc-ts/
+
+  ├── src/                      # 后端源码
+
+  │   ├── shared/               # 共享类型
+
+  │   ├── core/                 # 核心业务逻辑
+
+  │   ├── orchestrator/         # 编排引擎
+
+  │   ├── adapters/             # IM 桥接
+
+  │   ├── api/                  # Hono API 层
+
+  │   └── cli/                  # CLI 命令
+
+  ├── webui/                    # SvelteKit 前端
+
+  └── settings/                 # 配置模板
+
+  ```
+
+
+  ## Strategy
+
+  - 单包结构，避免 monorepo 发布复杂性
+
+  - 使用 node-pty 替代 tmux 管理进程
+
+  - 采用 IDE 风格 WebUI (类 VSCode 布局)
+
+  - 事件驱动架构，WebSocket 实时通信
+
+
+  ## Risks
+
+  - node-pty 原生模块跨平台编译
+
+  - 单文件体积优化
+
+  - WebSocket 断连恢复
+
+
+  ## Decisions
+
+  - 技术栈: TypeScript + Hono + SvelteKit + shadcn-svelte
+
+  - 构建工具: tsup (后端) + vite (前端)
+
+  - 测试: Vitest + Playwright'
+meta:
+  contract:
+    vision: One-sentence north star; update rarely.
+    sketch: Static blueprint only (architecture/strategy). No TODO/progress/tasks.
+    milestones: Coarse phase timeline (2-6). Exactly one active.
+    tasks: Deliverable work items with 3-7 steps.
+    linking: 'Each task should set milestone: Mx to form Vision→Milestones→Tasks tree.'
+milestones:
+- id: M1
+  name: '阶段0: 基础设施搭建'
+  description: 创建 cccc-ts/ 项目目录，初始化 pnpm 项目，配置 TypeScript、Biome、tsup、Vitest，设置 CI/CD
+    和 npm 发布脚本
+  status: done
+  started: '2025-12-26'
+  completed: '2025-12-26'
+  outcomes: 'cccc-ts/项目骨架完成: pnpm + TypeScript + Biome + tsup + Vitest 配置就绪，pnpm build/test:run/doctor
+    均可运行'
+  updated_at: '2025-12-26T08:21:25.770802Z'
+- id: M2
+  name: '阶段MVP: 核心后端闭环'
+  description: 实现 TS 核心类型 + Mailbox + 进程管理 + 最小CLI，建立"邮箱→进程→CLI"闭环验证
+  status: done
+  started: '2025-12-26'
+  completed: '2025-12-26'
+  outcomes: 'MVP核心后端闭环完成: (1) T002 shared/types.ts + schemas.ts + core/config.ts +
+    mailbox.ts (2) T003 orchestrator/process/manager.ts + peer-process.ts + output-parser.ts
+    + delivery.ts (3) T004 orchestrator.ts + cli/run.ts。pnpm build成功(22KB)，cccc --help可用。'
+  updated_at: '2025-12-26T08:32:32.217311Z'
+- id: M3
+  name: '阶段5: Hono API 层'
+  description: 实现 REST API (tasks/peers/messages/config/context) + WebSocket 事件广播
+    + Hono 服务入口
+  status: done
+  started: '2025-12-26'
+  completed: '2025-12-26'
+  outcomes: 'REST API层完成: (1) src/api/index.ts 路由汇总 + CORS/Logger中间件 (2) peers.ts/messages.ts/config.ts/context.ts
+    四个路由模块 (3) src/server.ts Hono服务入口 (4) cccc serve命令。所有端点curl测试通过: /health, /api/peers,
+    /api/config, /api/context, /api/messages。构建产物34KB。'
+  updated_at: '2025-12-26T08:39:32.411086Z'
+- id: M4
+  name: '阶段8: SvelteKit WebUI'
+  description: 初始化 SvelteKit 项目，集成 shadcn-svelte 和 Tailwind CSS，实现 IDE 风格布局和核心页面
+  status: done
+  started: '2025-12-26'
+  completed: '2025-12-26'
+  outcomes: 'WebUI初始化完成: (1) SvelteKit 5 minimal模板 (2) Tailwind CSS v4 + @tailwindcss/postcss配置
+    (3) IDE风格主布局(可折叠侧边栏/导航/顶栏/状态栏/内容区) (4) Dashboard首页(统计卡片/Peer状态/最近活动) (5) pnpm
+    dev可正常运行，端口5174。'
+  updated_at: '2025-12-26T08:48:48.373242Z'
+- id: M5
+  name: 'M5: 全流程集成闭环'
+  description: 完成 WebUI 所有页面 + API 对接 + WebSocket 实时推送 + 构建集成，实现 npx cccc 一键启动完整体验
+  status: done
+  started: '2025-12-26'
+  completed: '2025-12-26'
+  outcomes: WebUI 完整页面实现（Dashboard/Peers/Tasks/Messages/Context/Settings），API 客户端封装(src/lib/api.ts)，WebSocket
+    实时事件推送(src/api/ws.ts + src/core/events.ts + webui/src/lib/ws.ts)，静态文件构建集成(adapter-static
+    + build:all)。后端 40KB，WebUI 整合到 dist/webui。
+  updated_at: '2025-12-26T09:47:41.918930Z'
+- id: M6
+  name: 'M6: npm 发布'
+  description: 完成 README + npm publish + npx cccc 验证，实现一键安装目标
+  status: active
+  started: '2025-12-27'
+  outcomes: 'T9就绪: bin配置修复, README创建, npm link测试通过, 等待用户确认发布'
+  updated_at: '2025-12-27T01:43:00Z'
+notes:
+- id: N002
+  content: 'MVP核心闭环完成: types/schemas/config/mailbox + process/delivery + orchestrator/CLI，pnpm
+    build成功，cccc --help可用'
+  ttl: 18
+- id: N003
+  content: '阶段5 REST API完成: src/api/ 包含 peers/messages/config/context 路由, src/server.ts
+    服务入口, cccc serve 命令可用。WebSocket待后续实现。'
+  ttl: 19
+- id: N004
+  content: 'WebUI基础完成: SvelteKit 5 + Tailwind CSS v4 (@tailwindcss/postcss) + IDE风格布局(侧边栏+顶栏+状态栏+内容区)。Dashboard页面包含统计卡片和Peer状态。'
+  ttl: 20
+- id: N005
+  content: 'M5完成: WebUI全页面(6个)+API客户端+WebSocket实时事件+构建集成。pnpm build:all产出40KB后端+集成WebUI。'
+  ttl: 26
+- id: N006
+  content: '2025-12-27决策: IM桥接层(T6)不开发，TypeScript版本专注WebUI本地体验'
+  ttl: 81
+- id: N007
+  content: '2025-12-27 巡检: typecheck 已通过 (之前的 2 个类型错误已修复), test 2/2 通过, build:all
+    成功 344KB'
+  ttl: 25
+- id: N008
+  content: '2025-12-27 13:45 巡检通过: typecheck✅ test 4/4✅ build:all✅(49KB+216KB). M6等待用户确认npm
+    publish'
+  ttl: 30
+references: []

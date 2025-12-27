@@ -1,0 +1,24 @@
+id: T011
+name: 'T011: 配置适配与对话闭环'
+goal: 实现现有配置格式适配，完成 Peer 进程启动和对话功能闭环
+status: done
+milestone: M6
+created_at: '2025-12-27T02:46:00Z'
+updated_at: '2025-12-27T02:46:00Z'
+steps:
+- id: S1
+  name: 'S1: 配置适配层'
+  acceptance: agents.yaml (peer.command) → Actor (command/args) 转换正确
+  status: done
+- id: S2
+  name: 'S2: Profiles 适配'
+  acceptance: cli_profiles.yaml (roles) → CliProfile (bindings) 转换正确
+  status: done
+- id: S3
+  name: 'S3: 验证进程启动'
+  acceptance: cccc-pair run 能正确启动 claude CLI 进程
+  status: done
+- id: S4
+  name: 'S4: 对话验证'
+  acceptance: WebUI 发送消息 → Peer 收到 NUDGE → 响应可见
+  status: done

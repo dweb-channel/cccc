@@ -1,0 +1,61 @@
+{
+  "name": "cccc-pair",
+  "version": "0.1.0",
+  "description": "CCCC Pair - AI Agent Collaboration Orchestrator",
+  "type": "module",
+  "bin": {
+    "cccc-pair": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist/",
+    "settings/"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,green \"pnpm dev:api\" \"pnpm dev:web\"",
+    "dev:api": "tsup --watch --onSuccess \"node dist/index.js serve --project ..\"",
+    "dev:web": "pnpm --filter webui dev",
+    "build": "tsup",
+    "build:webui": "pnpm --filter webui build",
+    "build:all": "pnpm build && pnpm build:webui",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm build:all"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "orchestrator",
+    "cli",
+    "collaboration"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.0",
+    "chokidar": "^4.0.0",
+    "commander": "^12.1.0",
+    "execa": "^9.5.0",
+    "hono": "^4.6.0",
+    "js-yaml": "^4.1.0",
+    "ws": "^8.18.3",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.10.0",
+    "@types/ws": "^8.18.1",
+    "concurrently": "^9.2.1",
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  }
+}

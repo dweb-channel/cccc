@@ -1,0 +1,28 @@
+id: T006
+name: 'T006: SvelteKit 项目初始化'
+goal: 创建 webui/ SvelteKit 项目，集成 shadcn-svelte + Tailwind CSS，配置开发环境
+status: done
+milestone: M4
+created_at: '2025-12-26T08:39:56.689190Z'
+updated_at: '2025-12-26T08:48:35.524279Z'
+steps:
+- id: S1
+  name: 'S1: 初始化 SvelteKit 项目'
+  acceptance: webui/ 目录包含 SvelteKit 脚手架
+  status: in_progress
+- id: S2
+  name: 'S2: 集成 Tailwind CSS'
+  acceptance: tailwind.config.js 配置完成
+  status: pending
+- id: S3
+  name: 'S3: 集成 shadcn-svelte'
+  acceptance: components.json 和基础组件可用
+  status: pending
+- id: S4
+  name: 'S4: 创建 IDE 主布局'
+  acceptance: +layout.svelte 包含侧边栏+主区域结构
+  status: pending
+- id: S5
+  name: 'S5: 验证开发服务器'
+  acceptance: pnpm dev 可正常访问
+  status: pending

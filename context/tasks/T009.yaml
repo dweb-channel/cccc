@@ -1,0 +1,20 @@
+id: T009
+name: 'T009: WebSocket 实时推送'
+goal: 实现 WebSocket 服务端和客户端，支持实时事件推送
+status: done
+milestone: M5
+created_at: '2025-12-26T09:32:15.350653Z'
+updated_at: '2025-12-26T09:47:41.918930Z'
+steps:
+- id: S1
+  name: 'S1: 服务端 WebSocket'
+  acceptance: src/api/ws.ts 连接管理
+  status: pending
+- id: S2
+  name: 'S2: 事件广播'
+  acceptance: 编排器事件推送到 WS
+  status: pending
+- id: S3
+  name: 'S3: 客户端连接'
+  acceptance: WebUI 接收实时更新
+  status: pending

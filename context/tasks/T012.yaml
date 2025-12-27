@@ -1,0 +1,28 @@
+id: T012
+name: 'T012: WebUI 功能完善'
+goal: 修复 P0/P1/P2 问题，让 WebUI 真正可用
+status: done
+milestone: M6
+created_at: '2025-12-27T03:52:00Z'
+updated_at: '2025-12-27T04:30:00Z'
+steps:
+- id: S1
+  name: 'S1: Orchestrator 注入 API'
+  acceptance: startServer 接受 Orchestrator 实例，peers API 使用真实 ProcessManager
+  status: done
+- id: S2
+  name: 'S2: Peers API 实现'
+  acceptance: /api/peers/:id/start|restart|output 返回真实数据
+  status: done
+- id: S3
+  name: 'S3: WebUI 按钮功能'
+  acceptance: Peers 页面 Send/Output/Restart 按钮调用 API
+  status: done
+- id: S4
+  name: 'S4: WebSocket 输出流'
+  acceptance: Output 区域实时显示 peer 输出
+  status: done
+- id: S5
+  name: 'S5: Context YAML 解析'
+  acceptance: context.ts 使用 js-yaml 正确解析
+  status: done

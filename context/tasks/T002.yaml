@@ -1,0 +1,25 @@
+id: T002
+name: 'MVP: 核心类型与Mailbox'
+goal: 实现共享类型、Zod模型、配置管理和Mailbox协议
+status: done
+milestone: M2
+assignee: peer-a
+created_at: '2025-12-26T08:21:45.268142Z'
+updated_at: '2025-12-26T08:27:21.482143Z'
+steps:
+- id: S1
+  name: T1.1 src/shared/types.ts
+  acceptance: PeerStatus/TaskStatus/Message等核心类型定义完成
+  status: done
+- id: S2
+  name: T1.2 src/shared/schemas.ts
+  acceptance: Zod数据模型实现，支持验证
+  status: done
+- id: S3
+  name: T1.4 src/core/config.ts
+  acceptance: YAML配置加载，支持合并与默认值
+  status: done
+- id: S4
+  name: T1.8 src/core/mailbox.ts
+  acceptance: inbox/outbox读写、sentinel标记实现
+  status: done

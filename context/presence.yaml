@@ -1,0 +1,10 @@
+agents:
+- id: foreman
+  status: '已发送巡检报告: T003进程管理层已有代码但任务状态未更新，等待PeerA确认S1/S2完成度'
+  updated_at: '2025-12-26T08:29:30.811508Z'
+- id: peer-a
+  status: T002完成(types/schemas/config/mailbox)，准备开始T003进程管理层
+  updated_at: '2025-12-26T08:27:21.482143Z'
+- id: peer-b
+  updated_at: '2025-12-27T03:38:54.589508Z'
+heartbeat_timeout_seconds: 300

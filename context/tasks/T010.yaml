@@ -1,0 +1,24 @@
+id: T010
+name: 'T010: npm 发布'
+goal: 完成 npm 包发布，实现 npx cccc 一键启动
+status: in_progress
+milestone: M6
+created_at: '2025-12-27T02:05:00Z'
+updated_at: '2025-12-27T02:05:00Z'
+steps:
+- id: S1
+  name: 'S1: 修复构建问题'
+  acceptance: pnpm typecheck 和 pnpm build 均通过
+  status: done
+- id: S2
+  name: 'S2: 确定包名'
+  acceptance: 用户确认包名方案（cccc 已被占用）
+  status: done
+- id: S3
+  name: 'S3: 更新 package.json'
+  acceptance: 包名和 bin 配置正确
+  status: done
+- id: S4
+  name: 'S4: npm publish'
+  acceptance: npx <包名> 可正常运行
+  status: pending

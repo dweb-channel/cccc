@@ -1,0 +1,36 @@
+id: T005
+name: 'T005: Hono REST API 实现'
+goal: 完成 REST API 路由(tasks/peers/messages/config/context) 和 Hono 服务入口
+status: done
+milestone: M3
+created_at: '2025-12-26T08:35:34.162955Z'
+updated_at: '2025-12-26T08:39:14.507378Z'
+steps:
+- id: S1
+  name: 'S1: 创建 src/api/index.ts 路由汇总'
+  acceptance: Hono app 实例化，路由注册
+  status: in_progress
+- id: S2
+  name: 'S2: 创建 src/api/peers.ts Peer 状态'
+  acceptance: GET /api/peers, GET /api/peers/:id 路由
+  status: pending
+- id: S3
+  name: 'S3: 创建 src/api/messages.ts 消息操作'
+  acceptance: GET/POST /api/messages 路由
+  status: pending
+- id: S4
+  name: 'S4: 创建 src/api/config.ts 配置管理'
+  acceptance: GET /api/config 路由
+  status: pending
+- id: S5
+  name: 'S5: 创建 src/api/context.ts Context 查询'
+  acceptance: /api/context/* 路由
+  status: pending
+- id: S6
+  name: 'S6: 创建 src/server.ts 服务入口'
+  acceptance: 可通过 cccc serve 启动 API 服务
+  status: pending
+- id: S7
+  name: 'S7: 验证 API 可访问'
+  acceptance: curl 测试通过
+  status: pending

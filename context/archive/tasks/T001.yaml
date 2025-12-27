@@ -1,0 +1,37 @@
+id: T001
+name: 'T0: 基础设施搭建'
+goal: 创建可运行 pnpm dev 和 pnpm build 的空项目框架
+status: done
+milestone: M1
+assignee: peer-a
+created_at: '2025-12-26T08:15:25.555253Z'
+updated_at: '2025-12-26T08:19:35.836806Z'
+steps:
+- id: S1
+  name: 创建 cccc-ts/ 项目目录
+  acceptance: 目录存在且结构正确
+  status: done
+- id: S2
+  name: 初始化 pnpm 项目
+  acceptance: package.json 存在且配置正确
+  status: done
+- id: S3
+  name: 配置 TypeScript
+  acceptance: tsconfig.json 配置正确
+  status: done
+- id: S4
+  name: 配置 Biome
+  acceptance: biome.json 配置正确
+  status: done
+- id: S5
+  name: 配置 tsup 构建
+  acceptance: tsup.config.ts 配置正确
+  status: done
+- id: S6
+  name: 配置 Vitest
+  acceptance: vitest.config.ts 配置正确
+  status: done
+- id: S7
+  name: 验证构建
+  acceptance: pnpm build 和 pnpm dev 均可运行
+  status: done

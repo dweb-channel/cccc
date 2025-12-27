@@ -1,0 +1,28 @@
+id: T007
+name: 'T007: WebUI 完整页面实现'
+goal: 实现 Peers/Tasks/Messages/Context/Settings 五个核心页面
+status: done
+milestone: M5
+created_at: '2025-12-26T09:32:15.130972Z'
+updated_at: '2025-12-26T09:47:41.918930Z'
+steps:
+- id: S1
+  name: 'S1: Peers 页面'
+  acceptance: /peers 路由显示 Peer 列表和详情
+  status: in_progress
+- id: S2
+  name: 'S2: Tasks 页面'
+  acceptance: /tasks 路由显示任务列表和步骤
+  status: pending
+- id: S3
+  name: 'S3: Messages 页面'
+  acceptance: /messages 路由显示消息历史
+  status: pending
+- id: S4
+  name: 'S4: Context 页面'
+  acceptance: /context 路由显示 vision/sketch/milestones/notes
+  status: pending
+- id: S5
+  name: 'S5: Settings 页面'
+  acceptance: /settings 路由显示配置管理
+  status: pending

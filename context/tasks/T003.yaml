@@ -1,0 +1,25 @@
+id: T003
+name: 'MVP: 进程管理层'
+goal: 使用node-pty实现Peer进程管理和消息投递
+status: done
+milestone: M2
+assignee: peer-a
+created_at: '2025-12-26T08:21:45.332322Z'
+updated_at: '2025-12-26T08:30:15.238880Z'
+steps:
+- id: S1
+  name: T2.1 src/orchestrator/process/manager.ts
+  acceptance: ProcessManager可启动/停止/重启Peer进程
+  status: done
+- id: S2
+  name: T2.2 src/orchestrator/process/peer-process.ts
+  acceptance: PeerProcess封装PTY，输出缓冲和事件发射
+  status: done
+- id: S3
+  name: T2.3 src/orchestrator/process/output-parser.ts
+  acceptance: 空闲状态检测、ANSI处理
+  status: done
+- id: S4
+  name: T2.5 src/orchestrator/delivery.ts
+  acceptance: 消息格式化、投递到Peer PTY
+  status: done

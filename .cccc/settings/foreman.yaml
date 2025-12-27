@@ -1,0 +1,12 @@
+enabled: true
+interval_seconds: 900
+agent: claude
+prompt_path: ./FOREMAN_TASK.md
+cc_user: true
+max_run_seconds: 900
+self_optimization:
+  enabled: true
+  run_mode: after_task
+  quick_mode: false
+  min_interval_hours: 0.5
+allowed: true
