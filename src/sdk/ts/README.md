@@ -1,22 +1,67 @@
-# @cccc/sdk
+# CCCC SDK for Node.js
 
-CCCC Client SDK for Node.js - IPC client for CCCC daemon.
+CCCC Client SDK for building AI agents that communicate via the CCCC daemon.
+
+## Features
+
+- **CCCC Client** - IPC client for CCCC daemon communication
+- **Universal Agent Framework** - Registry and orchestrator for multi-modal agents
+- **Multiple Providers** - Gemini, OpenAI, Claude, Ollama handlers
+- **Streaming Support** - Real-time response streaming
+- **Tool Calling** - Function calling for OpenAI and Claude
+- **Vision Support** - Image input for OpenAI and Claude
+- **Type-Safe** - Full TypeScript support with exported types
 
 ## Installation
 
 ```bash
-npm install @cccc/sdk
+npm install cccc-sdk
 ```
 
-## Requirements
-
+Requirements:
 - Node.js >= 18.0.0
-- CCCC daemon running locally
+- CCCC daemon running (`ccccd start`)
 
 ## Quick Start
 
+### Agent Framework (Recommended)
+
 ```typescript
-import { CCCCClient } from '@cccc/sdk';
+import {
+  AgentRegistry,
+  OpenAITextHandler,
+  ClaudeTextHandler,
+} from 'cccc-sdk';
+
+// Create registry
+const registry = new AgentRegistry();
+
+// Register handlers
+await registry.register(new OpenAITextHandler({
+  apiKey: process.env.OPENAI_API_KEY!,
+  model: 'gpt-4o',
+}));
+
+await registry.register(new ClaudeTextHandler({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+  model: 'claude-sonnet-4-20250514',
+}));
+
+// Get and use a handler
+const handler = registry.get('text', 'openai');
+const result = await handler.process({
+  requestId: 'req-1',
+  task: 'generate',
+  content: [{ type: 'text', text: 'Hello, world!' }],
+});
+
+console.log(result.content[0]?.text);
+```
+
+### CCCC Client
+
+```typescript
+import { CCCCClient } from 'cccc-sdk';
 
 const client = new CCCCClient();
 
@@ -29,7 +74,272 @@ const groups = await client.groups.list();
 console.log('Groups:', groups);
 ```
 
-## API Overview
+---
+
+## Agent Framework
+
+### Handlers
+
+#### OpenAI
+
+```typescript
+import { OpenAITextHandler, OpenAIStreamingHandler } from 'cccc-sdk';
+
+// Non-streaming
+const handler = new OpenAITextHandler({
+  apiKey: process.env.OPENAI_API_KEY!,
+  model: 'gpt-4o',           // default: gpt-4o
+  apiBase: 'https://...',    // optional: custom API base
+  temperature: 0.7,          // optional
+  maxTokens: 1000,           // optional
+});
+
+// Streaming
+const streamingHandler = new OpenAIStreamingHandler({
+  apiKey: process.env.OPENAI_API_KEY!,
+  model: 'gpt-4o',
+});
+```
+
+#### Claude
+
+```typescript
+import { ClaudeTextHandler, ClaudeStreamingHandler } from 'cccc-sdk';
+
+const handler = new ClaudeTextHandler({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+  model: 'claude-sonnet-4-20250514',
+  apiBase: 'https://...',    // optional: custom API base
+  maxTokens: 4096,           // default: 4096
+});
+```
+
+#### Gemini
+
+```typescript
+import { GeminiTextHandler } from 'cccc-sdk';
+
+const handler = new GeminiTextHandler({
+  apiKey: process.env.GEMINI_API_KEY!,
+  model: 'gemini-2.0-flash',
+  apiBase: 'https://...',    // optional: custom API base
+});
+```
+
+#### Ollama
+
+```typescript
+import { OllamaTextHandler } from 'cccc-sdk';
+
+const handler = new OllamaTextHandler({
+  model: 'llama3.2',
+  apiBase: 'http://localhost:11434',  // default
+});
+```
+
+### Streaming
+
+```typescript
+import { OpenAIStreamingHandler, collectStream } from 'cccc-sdk';
+
+const handler = new OpenAIStreamingHandler({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
+
+const input = {
+  requestId: 'stream-1',
+  task: 'generate',
+  content: [{ type: 'text', text: 'Write a poem' }],
+};
+
+// Option 1: Process chunks manually
+for await (const chunk of handler.processStream(input)) {
+  if (chunk.type === 'delta') {
+    process.stdout.write(chunk.text ?? '');
+  }
+}
+
+// Option 2: Collect all chunks into final output
+const output = await collectStream(handler.processStream(input));
+console.log(output.content[0]?.text);
+```
+
+### Tool Calling (Function Calling)
+
+```typescript
+import { OpenAITextHandler, type ToolDefinition } from 'cccc-sdk';
+
+const tools: ToolDefinition[] = [
+  {
+    name: 'get_weather',
+    description: 'Get current weather for a location',
+    parameters: {
+      type: 'object',
+      properties: {
+        location: {
+          type: 'string',
+          description: 'City name',
+        },
+      },
+      required: ['location'],
+    },
+  },
+];
+
+const handler = new OpenAITextHandler({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
+
+const result = await handler.process({
+  requestId: 'tool-1',
+  task: 'generate',
+  content: [{ type: 'text', text: 'What is the weather in Tokyo?' }],
+  tools,
+  toolChoice: 'auto',  // 'auto' | 'none' | 'required' | { type: 'tool', name: '...' }
+});
+
+// Check for tool calls
+for (const item of result.content) {
+  if (item.type === 'tool_call' && item.toolCall) {
+    console.log('Tool call:', item.toolCall.name, item.toolCall.arguments);
+
+    // Execute tool and send result back
+    const toolResult = {
+      toolCallId: item.toolCall.id,
+      content: { temperature: 22, unit: 'celsius' },
+    };
+    // Include in next request's content as type: 'tool_result'
+  }
+}
+```
+
+### Vision (Image Input)
+
+```typescript
+import { OpenAITextHandler, ClaudeTextHandler } from 'cccc-sdk';
+
+// OpenAI Vision
+const openaiHandler = new OpenAITextHandler({
+  apiKey: process.env.OPENAI_API_KEY!,
+  model: 'gpt-4o',
+});
+
+// Claude Vision
+const claudeHandler = new ClaudeTextHandler({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+  model: 'claude-sonnet-4-20250514',
+});
+
+// Image from URL
+const urlResult = await openaiHandler.process({
+  requestId: 'vision-1',
+  task: 'generate',
+  content: [
+    { type: 'text', text: 'What is in this image?' },
+    {
+      type: 'image',
+      image: {
+        source: { type: 'url', url: 'https://example.com/image.jpg' },
+        detail: 'high',  // 'auto' | 'low' | 'high'
+      },
+    },
+  ],
+});
+
+// Image from Base64
+const base64Result = await claudeHandler.process({
+  requestId: 'vision-2',
+  task: 'generate',
+  content: [
+    { type: 'text', text: 'Describe this image' },
+    {
+      type: 'image',
+      image: {
+        source: {
+          type: 'base64',
+          data: 'iVBORw0KGgo...',  // base64 encoded image
+          mediaType: 'image/png',
+        },
+      },
+    },
+  ],
+});
+```
+
+### Agent Orchestrator
+
+```typescript
+import {
+  CCCCClient,
+  AgentRegistry,
+  AgentOrchestrator,
+  OpenAITextHandler,
+} from 'cccc-sdk';
+
+const client = new CCCCClient();
+const registry = new AgentRegistry();
+
+await registry.register(new OpenAITextHandler({
+  apiKey: process.env.OPENAI_API_KEY!,
+}));
+
+const orchestrator = new AgentOrchestrator({
+  client,
+  groupId: 'g_xxx',
+  actorId: 'my-agent',
+  registry,
+  pollInterval: 1000,
+  onMessage: async (msg) => {
+    console.log('Received:', msg.data.text);
+  },
+  onError: (err) => {
+    console.error('Error:', err.message);
+  },
+});
+
+// Start polling for messages
+await orchestrator.start();
+
+// Stop when done
+await orchestrator.stop();
+```
+
+### Custom Handler
+
+```typescript
+import {
+  BaseHandler,
+  type HandlerType,
+  type HandlerCapability,
+  type AgentInput,
+  type AgentOutput,
+} from 'cccc-sdk';
+
+class MyCustomHandler extends BaseHandler {
+  readonly type: HandlerType = 'text';
+  readonly name = 'my-handler';
+  readonly capabilities: HandlerCapability[] = [
+    { name: 'generate', description: 'Generate text' },
+  ];
+
+  async process(input: AgentInput): Promise<AgentOutput> {
+    const text = input.content.find(c => c.type === 'text')?.text ?? '';
+
+    return this.createOutput(
+      input.requestId,
+      [{ type: 'text', text: `Processed: ${text}` }],
+      { model: 'my-model-v1' }
+    );
+  }
+}
+
+// Register
+await registry.register(new MyCustomHandler());
+```
+
+---
+
+## CCCC Client API
 
 ### Groups
 
@@ -162,27 +472,66 @@ const milestone = await client.milestones.create('g_abc123', {
 await client.milestones.complete('g_abc123', milestone.id, 'Shipped!');
 ```
 
+---
+
+## Types
+
+Key exported types:
+
+```typescript
+import type {
+  // Handler types
+  AgentHandler,
+  HandlerType,        // 'text' | 'image' | 'video' | 'audio' | 'multimodal'
+  HandlerCapability,
+  HandlerConfig,
+
+  // Input/Output
+  AgentInput,
+  AgentOutput,
+  ContentItem,
+
+  // Tool Calling
+  ToolDefinition,
+  ToolCall,
+  ToolResult,
+  ToolChoice,
+  JSONSchema,
+
+  // Multi-modal
+  MediaSource,
+  ImageContent,
+  ImageDetail,
+  AudioContent,
+  VideoContent,
+  FileContent,
+
+  // Streaming
+  ContentChunk,
+  ChunkType,
+  StreamingCapable,
+
+  // Registry & Orchestrator
+  HandlerKey,
+  RegisteredHandler,
+  OrchestratorConfig,
+} from 'cccc-sdk';
+```
+
 ## Error Handling
 
 ```typescript
-import { CCCCClient, CCCCError } from '@cccc/sdk';
-
-const client = new CCCCClient();
+import { CCCCError, OpenAIAPIError, ClaudeAPIError } from 'cccc-sdk';
 
 try {
-  await client.groups.get('invalid-id');
-} catch (error) {
-  if (error instanceof CCCCError) {
-    console.error('CCCC Error:', error.code, error.message);
-    // Handle specific errors
-    switch (error.code) {
-      case 'DAEMON_NOT_RUNNING':
-        console.error('Please start CCCC daemon first');
-        break;
-      case 'GROUP_NOT_FOUND':
-        console.error('Group does not exist');
-        break;
-    }
+  const result = await handler.process(input);
+} catch (err) {
+  if (err instanceof OpenAIAPIError) {
+    console.error('OpenAI error:', err.code, err.message);
+  } else if (err instanceof ClaudeAPIError) {
+    console.error('Claude error:', err.code, err.message);
+  } else if (err instanceof CCCCError) {
+    console.error('CCCC error:', err.code, err.message);
   }
 }
 ```
