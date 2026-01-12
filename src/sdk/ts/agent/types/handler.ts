@@ -183,6 +183,72 @@ export interface VideoContent {
   extractFramesFps?: number;
 }
 
+// ============================================================================
+// Video Generation Types (M4)
+// ============================================================================
+
+/**
+ * Camera motion types for video generation
+ */
+export type CameraMotion =
+  | 'static'
+  | 'zoom_in'
+  | 'zoom_out'
+  | 'pan_left'
+  | 'pan_right'
+  | 'pan_up'
+  | 'pan_down'
+  | 'orbit'
+  | 'follow';
+
+/**
+ * Video aspect ratio presets
+ */
+export type VideoAspectRatio = '16:9' | '9:16' | '1:1' | '4:3' | '3:4';
+
+/**
+ * Video resolution presets
+ */
+export type VideoResolution = '480p' | '720p' | '1080p' | '2k' | '4k';
+
+/**
+ * Parameters for video generation tasks
+ * Used with AsyncTaskHandler for video generation providers
+ */
+export interface VideoGenerationParams {
+  /** First frame image (for image-to-video) */
+  firstFrame?: ImageContent;
+  /** Last frame image (for controlled video generation) */
+  lastFrame?: ImageContent;
+
+  /** Video duration in seconds */
+  duration?: number;
+  /** Frames per second (output) */
+  fps?: number;
+  /** Video resolution */
+  resolution?: VideoResolution;
+  /** Aspect ratio */
+  aspectRatio?: VideoAspectRatio;
+
+  /** Camera motion control */
+  cameraFixed?: boolean;
+  /** Camera motion type */
+  cameraMotion?: CameraMotion;
+
+  /** Add watermark to output */
+  watermark?: boolean;
+  /** Output format */
+  format?: 'mp4' | 'webm' | 'gif';
+
+  /** Seed for reproducibility */
+  seed?: number;
+  /** Negative prompt (things to avoid) */
+  negativePrompt?: string;
+
+  /** Provider-specific parameters */
+  providerParams?: Record<string, unknown>;
+}
+
 /**
  * File/document content configuration
  */
@@ -247,6 +313,91 @@ export interface StreamingCapable {
    * @returns AsyncIterable of content chunks
    */
   processStream(input: AgentInput): AsyncIterable<ContentChunk>;
+}
+
+// ============================================================================
+// Async Task Types (M4)
+// ============================================================================
+
+/**
+ * Task status for async operations
+ * Named AsyncTaskStatus to avoid conflict with context.ts TaskStatus
+ */
+export type AsyncTaskStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+
+/**
+ * Task information for async operations
+ * Represents the state of a long-running task
+ */
+export interface TaskInfo {
+  /** Unique task identifier */
+  taskId: string;
+  /** Current task status */
+  status: AsyncTaskStatus;
+  /** Progress percentage (0-100) */
+  progress?: number;
+  /** Task creation timestamp (ISO 8601) */
+  createdAt: string;
+  /** Last update timestamp (ISO 8601) */
+  updatedAt?: string;
+  /** Estimated completion time (ISO 8601) */
+  estimatedCompletionAt?: string;
+  /** Error information (if status='failed') */
+  error?: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  };
+  /** Result output (if status='completed') */
+  result?: AgentOutput;
+  /** Provider-specific metadata */
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Options for polling task status
+ */
+export interface PollOptions {
+  /** Polling interval in milliseconds (default: 5000) */
+  interval?: number;
+  /** Maximum wait time in milliseconds (default: 300000 = 5 minutes) */
+  timeout?: number;
+  /** Callback for progress updates */
+  onProgress?: (info: TaskInfo) => void;
+  /** Abort signal for cancellation */
+  signal?: AbortSignal;
+}
+
+/**
+ * Async task handler interface extension
+ * Handlers that support async task operations should implement this
+ */
+export interface AsyncTaskCapable {
+  /**
+   * Whether this handler supports async task operations
+   */
+  readonly supportsAsyncTask: boolean;
+
+  /**
+   * Submit a new task for processing
+   * @param input - The input payload to process
+   * @returns Promise resolving to task info with taskId
+   */
+  submitTask(input: AgentInput): Promise<TaskInfo>;
+
+  /**
+   * Get the current status of a task
+   * @param taskId - The task identifier
+   * @returns Promise resolving to current task info
+   */
+  getTaskStatus(taskId: string): Promise<TaskInfo>;
+
+  /**
+   * Cancel a running task (optional)
+   * @param taskId - The task identifier
+   * @returns Promise resolving to updated task info
+   */
+  cancelTask?(taskId: string): Promise<TaskInfo>;
 }
 
 /**
@@ -507,5 +658,242 @@ export abstract class BaseHandler implements AgentHandler {
       content: [],
       error: { code, message, details },
     };
+  }
+}
+
+/**
+ * Abstract base class for async task handlers
+ *
+ * Use this for long-running operations like video/image generation
+ * that follow the submit → poll → get result pattern.
+ *
+ * @example
+ * ```typescript
+ * class DoubaoVideoHandler extends AsyncTaskHandler {
+ *   readonly type: HandlerType = 'video';
+ *   readonly name = 'doubao-video';
+ *   readonly capabilities = [{ name: 'generate', description: 'Generate video' }];
+ *   readonly supportsAsyncTask = true;
+ *
+ *   async submitTask(input: AgentInput): Promise<TaskInfo> {
+ *     // Call provider API to submit task
+ *     const response = await this.callProviderSubmit(input);
+ *     return {
+ *       taskId: response.task_id,
+ *       status: 'pending',
+ *       createdAt: new Date().toISOString(),
+ *     };
+ *   }
+ *
+ *   async getTaskStatus(taskId: string): Promise<TaskInfo> {
+ *     // Poll provider API for status
+ *     const response = await this.callProviderStatus(taskId);
+ *     return this.mapProviderStatus(response);
+ *   }
+ * }
+ * ```
+ */
+export abstract class AsyncTaskHandler extends BaseHandler implements AsyncTaskCapable {
+  /**
+   * Whether this handler supports async task operations
+   */
+  readonly supportsAsyncTask: boolean = true;
+
+  /**
+   * Submit a new task for processing
+   * @param input - The input payload to process
+   * @returns Promise resolving to task info with taskId
+   */
+  abstract submitTask(input: AgentInput): Promise<TaskInfo>;
+
+  /**
+   * Get the current status of a task
+   * @param taskId - The task identifier
+   * @returns Promise resolving to current task info
+   */
+  abstract getTaskStatus(taskId: string): Promise<TaskInfo>;
+
+  /**
+   * Cancel a running task (optional, override if supported)
+   * @param taskId - The task identifier
+   * @returns Promise resolving to updated task info
+   */
+  async cancelTask(taskId: string): Promise<TaskInfo> {
+    return {
+      taskId,
+      status: 'failed',
+      createdAt: new Date().toISOString(),
+      error: {
+        code: 'CANCEL_NOT_SUPPORTED',
+        message: 'This handler does not support task cancellation',
+      },
+    };
+  }
+
+  /**
+   * Default implementation of process() for async handlers
+   * Uses processWithPolling internally
+   */
+  async process(input: AgentInput): Promise<AgentOutput> {
+    return this.processWithPolling(input);
+  }
+
+  /**
+   * Submit task and poll until completion
+   *
+   * Convenience method that handles the full async task lifecycle:
+   * 1. Submit the task
+   * 2. Poll for status updates
+   * 3. Return the final result
+   *
+   * @param input - The input payload to process
+   * @param options - Polling options (interval, timeout, callbacks)
+   * @returns Promise resolving to the final output
+   */
+  async processWithPolling(
+    input: AgentInput,
+    options: PollOptions = {}
+  ): Promise<AgentOutput> {
+    const {
+      interval = 5000,
+      timeout = 300000,
+      onProgress,
+      signal,
+    } = options;
+
+    // Submit the task
+    let taskInfo = await this.submitTask(input);
+
+    if (onProgress) {
+      onProgress(taskInfo);
+    }
+
+    // Poll until completion or timeout
+    const startTime = Date.now();
+
+    while (
+      taskInfo.status !== 'completed' &&
+      taskInfo.status !== 'failed' &&
+      taskInfo.status !== 'cancelled'
+    ) {
+      // Check timeout
+      if (Date.now() - startTime > timeout) {
+        return this.createErrorOutput(
+          input.requestId,
+          'TIMEOUT',
+          `Task ${taskInfo.taskId} timed out after ${timeout}ms`,
+          { taskId: taskInfo.taskId, lastStatus: taskInfo.status }
+        );
+      }
+
+      // Check abort signal
+      if (signal?.aborted) {
+        // Try to cancel the task
+        await this.cancelTask(taskInfo.taskId).catch(() => {});
+        return this.createErrorOutput(
+          input.requestId,
+          'ABORTED',
+          'Task was aborted by user',
+          { taskId: taskInfo.taskId }
+        );
+      }
+
+      // Wait for next poll
+      await this.sleep(interval);
+
+      // Get updated status
+      taskInfo = await this.getTaskStatus(taskInfo.taskId);
+
+      if (onProgress) {
+        onProgress(taskInfo);
+      }
+    }
+
+    // Handle final status
+    if (taskInfo.status === 'completed' && taskInfo.result) {
+      return taskInfo.result;
+    }
+
+    if (taskInfo.status === 'failed') {
+      return this.createErrorOutput(
+        input.requestId,
+        taskInfo.error?.code ?? 'TASK_FAILED',
+        taskInfo.error?.message ?? 'Task failed',
+        { taskId: taskInfo.taskId, ...taskInfo.error?.details }
+      );
+    }
+
+    if (taskInfo.status === 'cancelled') {
+      return this.createErrorOutput(
+        input.requestId,
+        'TASK_CANCELLED',
+        'Task was cancelled',
+        { taskId: taskInfo.taskId }
+      );
+    }
+
+    // Shouldn't reach here, but handle gracefully
+    return this.createErrorOutput(
+      input.requestId,
+      'UNKNOWN_STATUS',
+      `Task ended with unexpected status: ${taskInfo.status}`,
+      { taskId: taskInfo.taskId }
+    );
+  }
+
+  /**
+   * Helper to create a TaskInfo for pending status
+   */
+  protected createPendingTask(taskId: string, metadata?: Record<string, unknown>): TaskInfo {
+    return {
+      taskId,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      metadata,
+    };
+  }
+
+  /**
+   * Helper to create a TaskInfo for completed status
+   */
+  protected createCompletedTask(
+    taskId: string,
+    result: AgentOutput,
+    metadata?: Record<string, unknown>
+  ): TaskInfo {
+    return {
+      taskId,
+      status: 'completed',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      progress: 100,
+      result,
+      metadata,
+    };
+  }
+
+  /**
+   * Helper to create a TaskInfo for failed status
+   */
+  protected createFailedTask(
+    taskId: string,
+    code: string,
+    message: string,
+    details?: Record<string, unknown>
+  ): TaskInfo {
+    return {
+      taskId,
+      status: 'failed',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      error: { code, message, details },
+    };
+  }
+
+  /**
+   * Sleep helper for polling
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }

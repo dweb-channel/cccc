@@ -10,6 +10,7 @@ CCCC Client SDK for building AI agents that communicate via the CCCC daemon.
 - **Streaming Support** - Real-time response streaming
 - **Tool Calling** - Function calling for OpenAI and Claude
 - **Vision Support** - Image input for OpenAI and Claude
+- **Video Generation** - Async video generation with first/last frame input
 - **Type-Safe** - Full TypeScript support with exported types
 
 ## Installation
@@ -266,6 +267,108 @@ const base64Result = await claudeHandler.process({
 });
 ```
 
+### Video Generation (Async)
+
+Video generation uses async task pattern (submit → poll → get result).
+
+```typescript
+import { DoubaoVideoHandler } from 'cccc-sdk';
+
+const handler = new DoubaoVideoHandler({
+  apiKey: process.env.ARK_API_KEY!,
+  model: 'doubao-seedance-1-5-pro-251215',  // default
+  apiBase: 'https://ark.cn-beijing.volces.com/api/v3',  // default
+});
+
+// Option 1: Simple async/await (with automatic polling)
+const output = await handler.process({
+  requestId: 'video-1',
+  task: 'generate',
+  content: [{ type: 'text', text: 'A cat walking on the beach at sunset' }],
+  params: {
+    videoGeneration: {
+      duration: 5,
+      aspectRatio: '16:9',
+    },
+  },
+});
+
+console.log('Video URL:', output.content[0]?.video?.source.url);
+
+// Option 2: Manual task management
+const taskInfo = await handler.submitTask({
+  requestId: 'video-2',
+  task: 'generate',
+  content: [{ type: 'text', text: 'Ocean waves' }],
+});
+
+console.log('Task ID:', taskInfo.taskId);
+
+// Poll for status
+const status = await handler.getTaskStatus(taskInfo.taskId);
+if (status.status === 'completed' && status.result) {
+  console.log('Done!', status.result.content[0]?.video?.source.url);
+}
+```
+
+#### Image-to-Video (First Frame)
+
+```typescript
+// Generate video from a starting image
+const output = await handler.process({
+  requestId: 'i2v-1',
+  task: 'generate',
+  content: [{ type: 'text', text: 'The cat starts walking' }],
+  params: {
+    videoGeneration: {
+      firstFrame: {
+        source: { type: 'url', url: 'https://example.com/cat.jpg' },
+      },
+      duration: 5,
+    },
+  },
+});
+```
+
+#### Frame Interpolation (First + Last Frame)
+
+```typescript
+// Generate video between two keyframes
+const output = await handler.process({
+  requestId: 'interp-1',
+  task: 'generate',
+  content: [{ type: 'text', text: 'Smooth transition' }],
+  params: {
+    videoGeneration: {
+      firstFrame: {
+        source: { type: 'url', url: 'https://example.com/start.jpg' },
+      },
+      lastFrame: {
+        source: { type: 'url', url: 'https://example.com/end.jpg' },
+      },
+      duration: 5,
+    },
+  },
+});
+```
+
+#### Video Generation Parameters
+
+```typescript
+interface VideoGenerationParams {
+  firstFrame?: ImageContent;    // Starting frame image
+  lastFrame?: ImageContent;     // Ending frame image
+  duration?: number;            // Duration in seconds
+  fps?: number;                 // Frames per second
+  aspectRatio?: '16:9' | '9:16' | '1:1' | '4:3' | '3:4';
+  resolution?: '720p' | '1080p' | '4k';
+  cameraMotion?: 'static' | 'pan_left' | 'pan_right' | 'zoom_in' | 'zoom_out';
+  cameraFixed?: boolean;        // Lock camera position
+  watermark?: boolean;          // Add watermark
+  seed?: number;                // For reproducibility
+}
+```
+
 ### Agent Orchestrator
 
 ```typescript
@@ -511,6 +614,13 @@ import type {
   ChunkType,
   StreamingCapable,
 
+  // Async Tasks (Video Generation)
+  AsyncTaskStatus,    // 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+  TaskInfo,
+  PollOptions,
+  AsyncTaskCapable,
+  VideoGenerationParams,
+
   // Registry & Orchestrator
   HandlerKey,
   RegisteredHandler,
@@ -521,7 +631,7 @@ import type {
 ## Error Handling
 
 ```typescript
-import { CCCCError, OpenAIAPIError, ClaudeAPIError } from 'cccc-sdk';
+import { CCCCError, OpenAIAPIError, ClaudeAPIError, DoubaoAPIError } from 'cccc-sdk';
 
 try {
   const result = await handler.process(input);
@@ -530,6 +640,8 @@ try {
     console.error('OpenAI error:', err.code, err.message);
   } else if (err instanceof ClaudeAPIError) {
     console.error('Claude error:', err.code, err.message);
+  } else if (err instanceof DoubaoAPIError) {
+    console.error('Doubao error:', err.code, err.message, err.httpStatus);
   } else if (err instanceof CCCCError) {
     console.error('CCCC error:', err.code, err.message);
   }

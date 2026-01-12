@@ -19,3 +19,7 @@ export type { ClaudeHandlerConfig } from './claude.js';
 // Ollama (local)
 export { OllamaTextHandler, OllamaAPIError } from './ollama.js';
 export type { OllamaHandlerConfig } from './ollama.js';
+
+// Doubao Video (Volcengine)
+export { DoubaoVideoHandler, DoubaoAPIError } from './doubao-video.js';
+export type { DoubaoVideoHandlerConfig } from './doubao-video.js';
