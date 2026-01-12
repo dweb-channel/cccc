@@ -291,7 +291,7 @@ describe('AgentOrchestrator', () => {
 
     it('should call onMessage for non-agent messages', async () => {
       let onMessageCalled = false;
-      let receivedMessage: InboxMessage | null = null;
+      let receivedMessage: InboxMessage | undefined;
 
       const orchestrator = new AgentOrchestrator({
         client: mockClient as never,
@@ -309,7 +309,8 @@ describe('AgentOrchestrator', () => {
 
       assert.strictEqual(result, null); // No agent output for plain messages
       assert.ok(onMessageCalled);
-      assert.strictEqual(receivedMessage?.data.text, 'Hello, this is plain text');
+      assert.ok(receivedMessage !== undefined);
+      assert.strictEqual((receivedMessage as InboxMessage).data.text, 'Hello, this is plain text');
     });
 
     it('should send response back to original sender', async () => {

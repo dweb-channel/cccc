@@ -24,10 +24,13 @@ export type {
 export {
   AgentOrchestrator,
   createAgentRequest,
+  createStreamingAgentRequest,
   parseAgentResponse,
+  parseStreamChunk,
 } from './orchestrator.js';
 export type {
   AgentMessage,
+  StreamingChunkCallback,
   OrchestratorConfig,
   OrchestratorState,
   OrchestratorEvent,
@@ -35,6 +38,32 @@ export type {
   OrchestratorEventListener,
 } from './orchestrator.js';
 
+// Streaming
+export {
+  StreamingHandler,
+  isStreamingHandler,
+  collectStream,
+  transformStream,
+  prefixStream,
+} from './streaming.js';
+export type { StreamingHandlerConfig } from './streaming.js';
+
 // Handlers
-export { GeminiTextHandler, GeminiAPIError } from './handlers/index.js';
-export type { GeminiHandlerConfig } from './handlers/index.js';
+export {
+  GeminiTextHandler,
+  GeminiAPIError,
+  OpenAITextHandler,
+  OpenAIStreamingHandler,
+  OpenAIAPIError,
+  ClaudeTextHandler,
+  ClaudeStreamingHandler,
+  ClaudeAPIError,
+  OllamaTextHandler,
+  OllamaAPIError,
+} from './handlers/index.js';
+export type {
+  GeminiHandlerConfig,
+  OpenAIHandlerConfig,
+  ClaudeHandlerConfig,
+  OllamaHandlerConfig,
+} from './handlers/index.js';

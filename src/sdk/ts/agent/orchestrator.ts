@@ -8,12 +8,15 @@
 import { CCCCClient } from '../client.js';
 import type { InboxMessage } from '../types/message.js';
 import { AgentRegistry } from './registry.js';
+import { isStreamingHandler } from './streaming.js';
 import type {
   AgentHandler,
   AgentInput,
   AgentOutput,
   HandlerType,
   ContentItem,
+  ContentChunk,
+  StreamingCapable,
 } from './types/handler.js';
 
 /**
@@ -21,7 +24,7 @@ import type {
  */
 export interface AgentMessage {
   /** Message type indicator */
-  type: 'agent_request' | 'agent_response' | 'plain';
+  type: 'agent_request' | 'agent_response' | 'agent_stream_chunk' | 'plain';
   /** Target handler type */
   handlerType?: HandlerType;
   /** Target handler name (optional, uses first matching handler if not specified) */
@@ -30,9 +33,21 @@ export interface AgentMessage {
   task?: string;
   /** Request payload */
   payload?: AgentInput;
-  /** Response payload */
+  /** Response payload (for non-streaming) */
   response?: AgentOutput;
+  /** Stream chunk (for streaming responses) */
+  chunk?: ContentChunk;
+  /** Whether to use streaming mode */
+  streaming?: boolean;
 }
+
+/**
+ * Streaming chunk callback
+ */
+export type StreamingChunkCallback = (
+  chunk: ContentChunk,
+  message: InboxMessage
+) => Promise<void> | void;
 
 /**
  * Orchestrator configuration
@@ -54,6 +69,10 @@ export interface OrchestratorConfig {
   onMessage?: (message: InboxMessage) => Promise<void>;
   /** Error handler */
   onError?: (error: Error, message?: InboxMessage) => void;
+  /** Callback for streaming chunks (optional) */
+  onStreamChunk?: StreamingChunkCallback;
+  /** Whether to send streaming chunks via CCCC messages (default: false) */
+  sendStreamChunks?: boolean;
 }
 
 /**
@@ -69,6 +88,9 @@ export type OrchestratorEventType =
   | 'stopped'
   | 'message_received'
   | 'message_processed'
+  | 'stream_started'
+  | 'stream_chunk'
+  | 'stream_completed'
   | 'error';
 
 export interface OrchestratorEvent {
@@ -121,8 +143,10 @@ export class AgentOrchestrator {
       autoAck: true,
       onMessage: async () => {},
       onError: (err) => console.error('Orchestrator error:', err),
+      onStreamChunk: undefined,
+      sendStreamChunks: false,
       ...config,
-    };
+    } as Required<OrchestratorConfig>;
   }
 
   /**
@@ -210,6 +234,7 @@ export class AgentOrchestrator {
 
   /**
    * Process a single message directly (for testing or manual dispatch)
+   * Supports both streaming and non-streaming modes
    */
   async dispatch(message: InboxMessage): Promise<AgentOutput | null> {
     const agentMessage = this.parseMessage(message);
@@ -237,7 +262,19 @@ export class AgentOrchestrator {
       return errorOutput;
     }
 
-    // Process
+    // Check if streaming is requested and handler supports it
+    const useStreaming =
+      agentMessage.streaming && isStreamingHandler(handler);
+
+    if (useStreaming) {
+      return this.dispatchStreaming(
+        message,
+        handler as AgentHandler & StreamingCapable,
+        agentMessage
+      );
+    }
+
+    // Non-streaming process
     const startTime = Date.now();
     let output: AgentOutput;
 
@@ -267,6 +304,180 @@ export class AgentOrchestrator {
     await this.sendResponse(message, output);
 
     return output;
+  }
+
+  /**
+   * Process a message with streaming support
+   * Yields chunks as they become available
+   */
+  async *dispatchStream(
+    message: InboxMessage
+  ): AsyncIterable<ContentChunk> {
+    const agentMessage = this.parseMessage(message);
+
+    if (agentMessage.type !== 'agent_request') {
+      yield { type: 'error', error: { code: 'NOT_AGENT_REQUEST', message: 'Not an agent request' } };
+      return;
+    }
+
+    const handler = this.findHandler(agentMessage);
+    if (!handler) {
+      yield {
+        type: 'error',
+        error: {
+          code: 'HANDLER_NOT_FOUND',
+          message: `No handler found for type=${agentMessage.handlerType}, task=${agentMessage.task}`,
+        },
+      };
+      return;
+    }
+
+    if (!isStreamingHandler(handler)) {
+      // Handler doesn't support streaming, fall back to non-streaming
+      try {
+        const output = await handler.process(agentMessage.payload!);
+        for (const item of output.content) {
+          if (item.type === 'text' && item.text) {
+            yield { type: 'text', text: item.text };
+          }
+        }
+        if (output.metadata?.usage) {
+          yield { type: 'usage', usage: output.metadata.usage as ContentChunk['usage'] };
+        }
+        yield { type: 'done', done: true };
+      } catch (err) {
+        yield {
+          type: 'error',
+          error: {
+            code: 'HANDLER_ERROR',
+            message: err instanceof Error ? err.message : String(err),
+          },
+        };
+      }
+      return;
+    }
+
+    // Stream from handler
+    try {
+      for await (const chunk of handler.processStream(agentMessage.payload!)) {
+        yield chunk;
+      }
+    } catch (err) {
+      yield {
+        type: 'error',
+        error: {
+          code: 'STREAM_ERROR',
+          message: err instanceof Error ? err.message : String(err),
+        },
+      };
+    }
+  }
+
+  /**
+   * Internal streaming dispatch that collects and sends final response
+   */
+  private async dispatchStreaming(
+    message: InboxMessage,
+    handler: AgentHandler & StreamingCapable,
+    agentMessage: AgentMessage
+  ): Promise<AgentOutput> {
+    const requestId = agentMessage.payload?.requestId ?? 'unknown';
+    const startTime = Date.now();
+
+    this.emit({
+      type: 'stream_started',
+      timestamp: new Date(),
+      data: { eventId: message.event_id, requestId },
+    });
+
+    // Collect chunks while iterating (single pass)
+    const textParts: string[] = [];
+    let usage: { inputTokens?: number; outputTokens?: number; totalTokens?: number } | undefined;
+    let error: { code: string; message: string } | undefined;
+
+    try {
+      const stream = handler.processStream(agentMessage.payload!);
+
+      // Process chunks - single iteration
+      for await (const chunk of stream) {
+        // Collect for final output
+        switch (chunk.type) {
+          case 'text':
+          case 'delta':
+            if (chunk.text) {
+              textParts.push(chunk.text);
+            }
+            break;
+          case 'usage':
+            usage = chunk.usage;
+            break;
+          case 'error':
+            error = chunk.error;
+            break;
+        }
+
+        // Emit event
+        this.emit({
+          type: 'stream_chunk',
+          timestamp: new Date(),
+          data: { eventId: message.event_id, chunk },
+        });
+
+        // Call chunk callback if configured
+        if (this.config.onStreamChunk) {
+          await this.config.onStreamChunk(chunk, message);
+        }
+
+        // Send chunk via CCCC if configured
+        if (this.config.sendStreamChunks) {
+          await this.sendStreamChunk(message, chunk);
+        }
+      }
+
+      // Build final output from collected chunks
+      const output: AgentOutput = error
+        ? {
+            requestId,
+            success: false,
+            content: [],
+            error,
+            metadata: { processingTimeMs: Date.now() - startTime },
+          }
+        : {
+            requestId,
+            success: true,
+            content: [{ type: 'text', text: textParts.join('') }],
+            metadata: {
+              processingTimeMs: Date.now() - startTime,
+              usage,
+            },
+          };
+
+      this.emit({
+        type: 'stream_completed',
+        timestamp: new Date(),
+        data: { eventId: message.event_id, requestId },
+      });
+
+      // Send final response
+      await this.sendResponse(message, output);
+
+      return output;
+    } catch (err) {
+      const output: AgentOutput = {
+        requestId,
+        success: false,
+        content: [],
+        error: {
+          code: 'STREAM_ERROR',
+          message: err instanceof Error ? err.message : String(err),
+        },
+        metadata: { processingTimeMs: Date.now() - startTime },
+      };
+
+      await this.sendResponse(message, output);
+      return output;
+    }
   }
 
   /**
@@ -437,6 +648,25 @@ export class AgentOrchestrator {
     );
   }
 
+  /**
+   * Send a streaming chunk via CCCC message
+   */
+  private async sendStreamChunk(originalMessage: InboxMessage, chunk: ContentChunk): Promise<void> {
+    const chunkMessage: AgentMessage = {
+      type: 'agent_stream_chunk',
+      chunk,
+    };
+
+    await this.config.client.messages.send(
+      this.config.groupId,
+      this.config.actorId,
+      {
+        text: JSON.stringify(chunkMessage),
+        to: [originalMessage.by],
+      }
+    );
+  }
+
   private emit(event: OrchestratorEvent): void {
     for (const listener of this.listeners) {
       try {
@@ -488,4 +718,47 @@ export function parseAgentResponse(text: string): AgentOutput | null {
     // Not a valid response
   }
   return null;
+}
+
+/**
+ * Helper to parse streaming chunk from message text
+ */
+export function parseStreamChunk(text: string): ContentChunk | null {
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed.type === 'agent_stream_chunk' && parsed.chunk) {
+      return parsed.chunk as ContentChunk;
+    }
+  } catch {
+    // Not a valid chunk
+  }
+  return null;
+}
+
+/**
+ * Helper to create streaming agent request message
+ */
+export function createStreamingAgentRequest(
+  handlerType: HandlerType,
+  task: string,
+  content: ContentItem[],
+  options: {
+    handlerName?: string;
+    params?: Record<string, unknown>;
+    requestId?: string;
+  } = {}
+): AgentMessage {
+  return {
+    type: 'agent_request',
+    handlerType,
+    handlerName: options.handlerName,
+    task,
+    streaming: true,
+    payload: {
+      requestId: options.requestId ?? `req_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      task,
+      content,
+      params: options.params,
+    },
+  };
 }

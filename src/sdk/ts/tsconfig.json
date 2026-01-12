@@ -3,7 +3,7 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -15,6 +15,6 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
   },
-  "include": ["*.ts", "types/**/*.ts", "tests/**/*.ts", "examples/**/*.ts"],
+  "include": ["*.ts", "types/**/*.ts", "agent/**/*.ts", "tests/**/*.ts", "examples/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

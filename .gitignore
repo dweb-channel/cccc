@@ -13,12 +13,12 @@
 /.venv/
 
 # Build artifacts
-/dist/
+**/dist/
 /build/
 *.egg-info/
 
 # Web UI build/cache artifacts
-*/node_modules/
+**/node_modules/
 /web/.vite/
 /web/dist/
 /src/cccc/ports/web/dist/

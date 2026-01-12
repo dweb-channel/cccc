@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node --test dist/tests/*.js",
+    "test": "npm run build && node --test 'dist/tests/**/*.test.js'",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build"
   },
@@ -33,6 +33,7 @@
     "dist/*.js",
     "dist/*.d.ts",
     "dist/types",
+    "dist/agent",
     "README.md"
   ],
   "repository": {
