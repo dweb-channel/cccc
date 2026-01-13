@@ -96,6 +96,7 @@ export const VirtualMessageList = memo(function VirtualMessageList({
     getItemKey: (index) => messages[index]?.id ?? index,
     estimateSize: () => 120,
     overscan: 5,
+    paddingStart: 72,
   });
 
   const measureElement = useCallback(
@@ -361,9 +362,8 @@ export const VirtualMessageList = memo(function VirtualMessageList({
         isLoadingHistory ? (
           <div className="flex flex-col items-center justify-center h-full text-center pb-20">
             <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full shadow-md ${
-                isDark ? "bg-slate-800 text-slate-300" : "bg-white text-gray-600"
-              }`}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full shadow-md ${isDark ? "bg-slate-800 text-slate-300" : "bg-white text-gray-600"
+                }`}
             >
               <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
               <span className="text-xs">Loading...</span>
@@ -385,9 +385,8 @@ export const VirtualMessageList = memo(function VirtualMessageList({
           {/* Loading indicator for history - sticky positioned for visibility */}
           {isLoadingHistory && (
             <div className="sticky top-0 z-10 flex justify-center py-3">
-              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full shadow-md ${
-                isDark ? "bg-slate-800 text-slate-300" : "bg-white text-gray-600"
-              }`}>
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full shadow-md ${isDark ? "bg-slate-800 text-slate-300" : "bg-white text-gray-600"
+                }`}>
                 <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
                 <span className="text-xs">Loading...</span>
               </div>
@@ -454,11 +453,10 @@ export const VirtualMessageList = memo(function VirtualMessageList({
           {/* Scroll Button */}
           {showScrollButton && (
             <button
-              className={`fixed bottom-24 right-6 p-3 rounded-full shadow-xl transition-all z-10 ${
-                isDark
+              className={`fixed bottom-24 right-6 p-3 rounded-full shadow-xl transition-all z-10 ${isDark
                   ? "bg-slate-800 text-white hover:bg-slate-700 border border-slate-700"
                   : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-100"
-              }`}
+                }`}
               onClick={() => {
                 scrollToBottom();
                 onScrollButtonClick();

@@ -416,7 +416,7 @@ export const MessageBubble = memo(function MessageBubble({
                     )}
 
                     {/* Text Content */}
-                    <div className="whitespace-pre-wrap break-words">{formatEventLine(ev)}</div>
+                    <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{formatEventLine(ev)}</div>
 
                     {/* Attachments */}
                     {blobAttachments.length > 0 && groupId && (() => {

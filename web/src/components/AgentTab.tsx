@@ -33,6 +33,7 @@ interface AgentTabProps {
   onInbox: () => void;
   busy: string;
   isDark: boolean;
+  isSmallScreen: boolean;
   /** Called when the component detects actor status may have changed (e.g., process exited) */
   onStatusChange?: () => void;
 }
@@ -50,6 +51,7 @@ export function AgentTab({
   onInbox,
   busy,
   isDark,
+  isSmallScreen,
   onStatusChange,
 }: AgentTabProps) {
   // Derived state (must be defined before refs that use them)
@@ -183,7 +185,7 @@ export function AgentTab({
     });
 
     const fitAddon = new FitAddon();
-    
+
     term.loadAddon(fitAddon);
     term.open(termRef.current);
     // Ensure focus works consistently across browsers (and prevents the inactive cursor style).
@@ -256,7 +258,7 @@ export function AgentTab({
       void copySelection();
     };
     term.element?.addEventListener("contextmenu", onContextMenu);
-    
+
     terminalRef.current = term;
     fitAddonRef.current = fitAddon;
 
@@ -502,27 +504,27 @@ export function AgentTab({
       // Handle terminal input - send as JSON with type "i" (input)
       const term = terminalRef.current;
       if (term) {
-          disposable = term.onData((data) => {
-            if (ws.readyState === WebSocket.OPEN) {
-              // xterm.js can emit terminal replies (not user keystrokes), e.g. device attributes / color queries.
-              // Some runtimes can echo these back as literal text (seen as "1;2c" or "]11;rgb:..."), so filter for those.
-              // Keep the filter runtime-scoped to avoid interfering with full-screen TUIs that may rely on terminal queries.
-              if (actor.runtime === "droid" || actor.runtime === "gemini" || actor.runtime === "kilocode" || actor.runtime === "copilot" || actor.runtime === "neovate") {
-                const isDeviceAttributesReply = /^\x1b\[(?:\?|>)(?:\d+)(?:;\d+)*c$/.test(data);
-                if (isDeviceAttributesReply) return;
+        disposable = term.onData((data) => {
+          if (ws.readyState === WebSocket.OPEN) {
+            // xterm.js can emit terminal replies (not user keystrokes), e.g. device attributes / color queries.
+            // Some runtimes can echo these back as literal text (seen as "1;2c" or "]11;rgb:..."), so filter for those.
+            // Keep the filter runtime-scoped to avoid interfering with full-screen TUIs that may rely on terminal queries.
+            if (actor.runtime === "droid" || actor.runtime === "gemini" || actor.runtime === "kilocode" || actor.runtime === "copilot" || actor.runtime === "neovate") {
+              const isDeviceAttributesReply = /^\x1b\[(?:\?|>)(?:\d+)(?:;\d+)*c$/.test(data);
+              if (isDeviceAttributesReply) return;
 
-                // OSC color query replies (e.g. background/foreground): ESC ] 10/11 ; rgb:.... BEL or ST
-                const isOscColorReply = /^\x1b\](?:10|11);rgb:[0-9a-fA-F]{1,4}\/[0-9a-fA-F]{1,4}\/[0-9a-fA-F]{1,4}(?:\x07|\x1b\\)$/.test(data);
-                if (isOscColorReply) return;
+              // OSC color query replies (e.g. background/foreground): ESC ] 10/11 ; rgb:.... BEL or ST
+              const isOscColorReply = /^\x1b\](?:10|11);rgb:[0-9a-fA-F]{1,4}\/[0-9a-fA-F]{1,4}\/[0-9a-fA-F]{1,4}(?:\x07|\x1b\\)$/.test(data);
+              if (isOscColorReply) return;
 
-                // Focus in/out events (CSI I / CSI O) can be emitted by xterm when apps enable focus tracking (DEC 1004).
-                // Some runtimes echo them as literal text on tab focus changes (seen as "[O").
-                const isFocusEvent = /^\x1b\[[IO]$/.test(data);
-                if (isFocusEvent) return;
-              }
-              ws.send(JSON.stringify({ t: "i", d: data }));
+              // Focus in/out events (CSI I / CSI O) can be emitted by xterm when apps enable focus tracking (DEC 1004).
+              // Some runtimes echo them as literal text on tab focus changes (seen as "[O").
+              const isFocusEvent = /^\x1b\[[IO]$/.test(data);
+              if (isFocusEvent) return;
             }
-          });
+            ws.send(JSON.stringify({ t: "i", d: data }));
+          }
+        });
 
         // Handle terminal resize - send as JSON with type "r" (resize)
         resizeDisposable = term.onResize(({ cols, rows }) => {
@@ -710,9 +712,9 @@ export function AgentTab({
         )}
       </div>
 
-      {/* Action Buttons */}
+      {/* Action Buttons - Scrollable on mobile to prevent overflow */}
       <div className={classNames(
-        "flex items-center gap-2 px-4 py-3 border-t",
+        "flex items-center gap-2 px-4 py-3 border-t overflow-x-auto scrollbar-hide select-none",
         isDark ? "bg-slate-900/50 border-slate-800" : "bg-gray-100 border-gray-200"
       )}>
         {isRunning ? (
@@ -721,18 +723,19 @@ export function AgentTab({
               onClick={onQuit}
               disabled={isBusy}
               className={classNames(
-                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm disabled:opacity-50 min-h-[44px] transition-colors",
+                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm disabled:opacity-50 min-h-[44px] transition-colors flex-shrink-0 whitespace-nowrap",
                 isDark ? "bg-slate-800 hover:bg-slate-700 text-slate-200" : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"
               )}
               aria-label="Quit agent"
             >
-              <StopIcon size={16} /> Quit
+              <StopIcon size={16} />
+              {!isSmallScreen && "Quit"}
             </button>
             <button
               onClick={sendInterrupt}
               disabled={connectionStatus !== 'connected'}
               className={classNames(
-                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm disabled:opacity-50 min-h-[44px] transition-colors",
+                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm disabled:opacity-50 min-h-[44px] transition-colors flex-shrink-0 whitespace-nowrap",
                 isDark ? "bg-slate-800 hover:bg-slate-700 text-slate-200" : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"
               )}
               title="Send Ctrl+C to interrupt"
@@ -744,23 +747,25 @@ export function AgentTab({
               onClick={onRelaunch}
               disabled={isBusy}
               className={classNames(
-                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm disabled:opacity-50 min-h-[44px] transition-colors",
+                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm disabled:opacity-50 min-h-[44px] transition-colors flex-shrink-0 whitespace-nowrap",
                 isDark ? "bg-slate-800 hover:bg-slate-700 text-slate-200" : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"
               )}
               aria-label="Relaunch agent"
             >
-              <RefreshIcon size={16} /> Relaunch
+              <RefreshIcon size={16} />
+              {!isSmallScreen && "Relaunch"}
             </button>
             <button
               onClick={onEdit}
               disabled={isBusy}
               className={classNames(
-                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm disabled:opacity-50 min-h-[44px] transition-colors",
+                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm disabled:opacity-50 min-h-[44px] transition-colors flex-shrink-0 whitespace-nowrap",
                 isDark ? "bg-slate-800 hover:bg-slate-700 text-slate-200" : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"
               )}
               aria-label="Edit agent configuration"
             >
-              <EditIcon size={16} /> Edit
+              <EditIcon size={16} />
+              {!isSmallScreen && "Edit"}
             </button>
           </>
         ) : (
@@ -768,10 +773,11 @@ export function AgentTab({
             <button
               onClick={onLaunch}
               disabled={isBusy}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-sm disabled:opacity-50 min-h-[44px] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-sm disabled:opacity-50 min-h-[44px] transition-colors flex-shrink-0 whitespace-nowrap"
               aria-label="Launch agent"
             >
-              <PlayIcon size={16} /> Launch
+              <PlayIcon size={16} />
+              {isBusy ? "Launching..." : "Launch"}
             </button>
             <button
               onClick={onEdit}
@@ -789,18 +795,19 @@ export function AgentTab({
         <button
           onClick={onInbox}
           className={classNames(
-            "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm min-h-[44px] transition-colors",
+            "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm min-h-[44px] transition-colors flex-shrink-0 whitespace-nowrap",
             unreadCount > 0
               ? isDark
                 ? "bg-indigo-500/10 text-indigo-200 border border-indigo-500/20 hover:bg-indigo-500/15"
                 : "bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
-              : isDark 
-                ? "bg-slate-800 hover:bg-slate-700 text-slate-200" 
+              : isDark
+                ? "bg-slate-800 hover:bg-slate-700 text-slate-200"
                 : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300"
           )}
           aria-label={`Open inbox${unreadCount > 0 ? `, ${unreadCount} unread messages` : ""}`}
         >
-          <InboxIcon size={16} /> Inbox
+          <InboxIcon size={16} />
+          {!isSmallScreen && "Inbox"}
           {unreadCount > 0 && (
             <span
               className={classNames(
@@ -818,13 +825,14 @@ export function AgentTab({
           onClick={onRemove}
           disabled={isBusy || isRunning}
           className={classNames(
-            "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm disabled:opacity-50 min-h-[44px] transition-colors",
+            "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm disabled:opacity-50 min-h-[44px] transition-colors flex-shrink-0 whitespace-nowrap",
             isDark ? "hover:bg-rose-900/30 text-rose-400" : "hover:bg-rose-50 text-rose-600"
           )}
           title={isRunning ? "Stop the agent before removing" : "Remove agent"}
           aria-label="Remove agent"
         >
-          <TrashIcon size={16} /> Remove
+          <TrashIcon size={16} />
+          {!isSmallScreen && "Remove"}
         </button>
       </div>
     </div>

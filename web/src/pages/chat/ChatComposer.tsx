@@ -3,6 +3,7 @@ import type { Dispatch, RefObject, SetStateAction } from "react";
 import { useMemo } from "react";
 import { Actor, GroupMeta, ReplyTarget } from "../../types";
 import { classNames } from "../../utils/classNames";
+import { AlertIcon, AttachmentIcon, SendIcon, ChevronDownIcon, ReplyIcon, CloseIcon } from "../../components/Icons";
 
 export interface ChatComposerProps {
   isDark: boolean;
@@ -86,7 +87,7 @@ export function ChatComposer({
   onAppendRecipientToken,
 }: ChatComposerProps) {
   const chipBaseClass =
-    "flex-shrink-0 whitespace-nowrap text-[11px] px-2.5 py-1 rounded-full border transition-all";
+    "flex-shrink-0 whitespace-nowrap text-[11px] px-3 rounded-full border transition-all flex items-center justify-center font-medium";
 
   // Get display name for reply target
   const replyByDisplayName = useMemo(() => {
@@ -276,67 +277,71 @@ export function ChatComposer({
         ? "bg-blue-600/20 text-blue-100 border-blue-500/40 hover:border-blue-400/60"
         : "bg-blue-50 text-blue-700 border-blue-200 hover:border-blue-300";
     }
+    // Match the neutral look of recipient buttons
     return isDark
-      ? "bg-cyan-500/10 text-slate-200 border-cyan-500/30 hover:border-cyan-400/40 hover:bg-cyan-500/15"
-      : "bg-cyan-50 text-gray-800 border-cyan-200 hover:border-cyan-300";
+      ? "bg-white/5 text-slate-200 border-white/5 hover:border-white/10"
+      : "bg-black/5 text-gray-800 border-transparent hover:border-black/5";
   }, [canChooseDestGroup, groupOptions.length, isCrossGroup, isDark]);
 
   const groupCaretClass = useMemo(() => {
     if (!canChooseDestGroup || groupOptions.length === 0) return isDark ? "text-slate-600" : "text-gray-400";
     if (isCrossGroup) return isDark ? "text-blue-200" : "text-blue-700";
-    return isDark ? "text-cyan-200" : "text-cyan-800";
+    return isDark ? "text-slate-400" : "text-gray-500";
   }, [canChooseDestGroup, groupOptions.length, isCrossGroup, isDark]);
 
   return (
     <footer
       className={classNames(
-        "flex-shrink-0 border-t px-4 py-3 safe-area-inset-bottom",
-        isDark ? "border-slate-800 bg-slate-950/80 backdrop-blur" : "border-gray-200 bg-white/80 backdrop-blur"
+        "flex-shrink-0 border-t px-4 py-3 safe-area-inset-bottom transition-colors",
+        isDark ? "border-white/5 bg-slate-950/90 backdrop-blur-md" : "border-black/5 bg-white/95 backdrop-blur-md"
       )}
     >
       {/* Reply indicator */}
       {replyTarget && (
         <div className={classNames(
-          "mb-2 flex items-center gap-2 text-xs rounded-xl px-3 py-2",
-          isDark ? "text-slate-400 bg-slate-900/50" : "text-gray-500 bg-gray-100"
+          "mb-3 flex items-center gap-2 text-xs rounded-xl px-3 py-2",
+          isDark ? "text-slate-400 bg-white/5" : "text-gray-500 bg-black/5"
         )}>
-          <span className={isDark ? "text-slate-500" : "text-gray-400"}>Replying to</span>
-          <span className={classNames("font-medium", isDark ? "text-slate-300" : "text-gray-700")}>{replyByDisplayName}</span>
-          <span className={classNames("truncate flex-1", isDark ? "text-slate-500" : "text-gray-400")}>"{replyTarget.text}"</span>
+          <ReplyIcon size={14} className="flex-shrink-0 opacity-60" />
+          <span className="font-medium truncate flex-1">
+            <span className="opacity-60 mr-1">Replying to</span>
+            <span className={isDark ? "text-slate-300" : "text-gray-700"}>{replyByDisplayName}</span>
+            <span className="mx-1 opacity-40">"</span>
+            <span className="italic opacity-80">{replyTarget.text}</span>
+            <span className="opacity-40">"</span>
+          </span>
           <button
             className={classNames(
-              "p-1 rounded-full",
-              isDark ? "hover:bg-slate-800 text-slate-400 hover:text-slate-200" : "hover:bg-gray-200 text-gray-400 hover:text-gray-600"
+              "p-1 rounded-full transition-colors",
+              isDark ? "hover:bg-white/10 text-slate-400 hover:text-white" : "hover:bg-black/10 text-gray-400 hover:text-gray-600"
             )}
             onClick={onCancelReply}
             title="Cancel reply"
             aria-label="Cancel reply"
           >
-            ×
+            <CloseIcon size={14} />
           </button>
         </div>
       )}
 
-      {/* Recipient Selector */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className={classNames("text-xs font-medium flex-shrink-0", isDark ? "text-slate-500" : "text-gray-400")}>To</div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+      {/* Recipient Selector Row */}
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-2.5">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className={classNames("text-[10px] font-bold uppercase tracking-wider flex-shrink-0", isDark ? "text-slate-500" : "text-gray-400")}>To</div>
+
+          {/* Group Selector - Styled to match buttons */}
           <div className="relative flex-shrink-0">
             <select
               value={destGroupId || selectedGroupId || ""}
               onChange={(e) => setDestGroupId(e.target.value)}
               style={{ colorScheme: isDark ? "dark" : "light" }}
               className={classNames(
-                "appearance-none pr-7 truncate max-w-[200px] sm:max-w-[240px]",
-                "cccc-group-select",
+                "appearance-none pr-8 truncate min-w-[120px] max-w-[180px] sm:max-w-[240px]",
+                "h-8 transition-colors cursor-pointer", // Fixed height to match buttons
                 chipBaseClass,
                 groupSelectClass
               )}
               disabled={!canChooseDestGroup || groupOptions.length === 0}
-              title={
-                destGroupDisabledReason ||
-                (destGroupScopeLabel ? `Destination group • ${destGroupScopeLabel}` : "Destination group")
-              }
               aria-label="Destination group"
             >
               {groupOptions.map((g) => (
@@ -345,19 +350,18 @@ export function ChatComposer({
                 </option>
               ))}
             </select>
-            <div
-              className={classNames(
-                "pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px]",
-                groupCaretClass
-              )}
-              aria-hidden="true"
-            >
-              ▾
+            <div className={classNames("pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 opacity-60", groupCaretClass)}>
+              <ChevronDownIcon size={12} />
             </div>
           </div>
-        </div>
-        <div className={classNames("flex-1 min-w-0 overflow-x-auto scrollbar-hide sm:overflow-visible", recipientActorsBusy ? "opacity-60" : "")}>
-          <div className="flex items-center gap-1.5 flex-nowrap sm:flex-wrap">
+
+          <div className="w-[1px] h-4 bg-current opacity-10 flex-shrink-0 mx-1 hidden sm:block" />
+
+          {/* Recipients List - Scrollable horizontally on mobile */}
+          <div className={classNames(
+            "flex items-center gap-1.5 min-w-0 transition-opacity",
+            recipientActorsBusy ? "opacity-50 pointer-events-none" : ""
+          )}>
             {/* Special tokens */}
             {["@all", "@foreman", "@peers"].map((tok) => {
               const active = toTokens.includes(tok);
@@ -365,95 +369,94 @@ export function ChatComposer({
                 <button
                   key={tok}
                   className={classNames(
+                    "h-8", // Fixed height
                     chipBaseClass,
                     active
-                      ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
+                      ? "bg-blue-600 text-white border-blue-500 shadow-sm shadow-blue-500/20"
                       : isDark
-                        ? "bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-600 hover:text-slate-200"
-                        : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:text-gray-800"
+                        ? "bg-white/5 text-slate-400 border-white/5 hover:border-white/20 hover:text-slate-200"
+                        : "bg-black/5 text-gray-600 border-transparent hover:border-black/10 hover:text-gray-800"
                   )}
                   onClick={() => onToggleRecipient(tok)}
                   disabled={!selectedGroupId || busy === "send"}
-                  title={active ? "Remove recipient" : "Add recipient"}
                   aria-pressed={active}
                 >
                   {tok}
                 </button>
               );
             })}
-            {/* Actor tokens - show title but use id as value */}
+            {/* Actor tokens */}
             {recipientActors.map((actor) => {
               const id = String(actor.id || "");
               if (!id) return null;
               const active = toTokens.includes(id);
-              const displayName = actor.title || id;
               return (
                 <button
                   key={id}
                   className={classNames(
+                    "h-8", // Fixed height
                     chipBaseClass,
                     active
-                      ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
+                      ? "bg-blue-600 text-white border-blue-500 shadow-sm shadow-blue-500/20"
                       : isDark
-                        ? "bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-600 hover:text-slate-200"
-                        : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:text-gray-800"
+                        ? "bg-white/5 text-slate-400 border-white/5 hover:border-white/20 hover:text-slate-200"
+                        : "bg-black/5 text-gray-600 border-transparent hover:border-black/10 hover:text-gray-800"
                   )}
                   onClick={() => onToggleRecipient(id)}
                   disabled={!selectedGroupId || busy === "send" || !!recipientActorsBusy}
-                  title={active ? `Remove ${displayName}` : `Add ${displayName}`}
                   aria-pressed={active}
                 >
-                  {displayName}
+                  {actor.title || id}
                 </button>
               );
             })}
+
+            {toTokens.length > 0 && (
+              <button
+                className={classNames(
+                  "p-2 rounded-full transition-all flex-shrink-0 opacity-40 hover:opacity-100",
+                  isDark ? "hover:bg-white/10" : "hover:bg-black/10"
+                )}
+                onClick={onClearRecipients}
+                disabled={busy === "send"}
+                title="Clear recipients"
+              >
+                <CloseIcon size={14} />
+              </button>
+            )}
           </div>
         </div>
-        {toTokens.length > 0 && (
-          <button
-            className={classNames(
-              "flex-shrink-0 text-[10px] px-2 py-1 rounded-full transition-colors",
-              isDark ? "text-slate-500 hover:text-slate-300 hover:bg-slate-800" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-            )}
-            onClick={onClearRecipients}
-            disabled={busy === "send"}
-            title="Clear recipients"
-          >
-            clear
-          </button>
-        )}
       </div>
 
       {/* File list */}
       {composerFiles.length > 0 && (
-        <div className={classNames("mb-3 flex flex-wrap gap-2", isDark ? "text-slate-300" : "text-gray-700")}>
+        <div className="mb-4 flex flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
           {composerFiles.map((f, idx) => (
-            <span
+            <div
               key={`${f.name}:${idx}`}
               className={classNames(
-                "inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs max-w-full shadow-sm",
-                isDark ? "border-slate-700 bg-slate-900" : "border-gray-200 bg-white"
+                "inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs max-w-full shadow-sm transition-all",
+                isDark ? "border-white/10 bg-slate-900/50 text-slate-300" : "border-black/5 bg-gray-50 text-gray-700"
               )}
-              title={f.name}
             >
+              <AttachmentIcon size={12} className="opacity-60" />
               <span className="truncate">{f.name}</span>
               <button
                 className={classNames(
                   "flex-shrink-0 p-0.5 rounded-full",
-                  isDark ? "text-slate-400 hover:text-white hover:bg-slate-700" : "text-slate-400 hover:text-gray-700 hover:bg-gray-100"
+                  isDark ? "hover:bg-white/10 text-slate-400 hover:text-white" : "hover:bg-black/10 text-gray-400 hover:text-gray-700"
                 )}
                 onClick={() => onRemoveComposerFile(idx)}
-                title="Remove file"
               >
-                ×
+                <CloseIcon size={14} />
               </button>
-            </span>
+            </div>
           ))}
         </div>
       )}
 
-      {/* Input row */}
-      <div className="flex gap-2 relative items-end">
+      {/* Main Input Area - Perfectly Centered for Better Alignment */}
+      <div className="flex gap-2.5 relative items-center">
         <input
           ref={fileInputRef}
           type="file"
@@ -465,109 +468,115 @@ export function ChatComposer({
             e.target.value = "";
           }}
         />
+
+        {/* Attachment Button */}
         <button
           className={classNames(
-            "rounded-full p-2.5 text-lg transition-colors flex-shrink-0 shadow-sm border",
+            "w-11 h-11 rounded-2xl flex items-center justify-center transition-all flex-shrink-0 shadow-sm border group",
             isDark
-              ? "bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700 hover:border-slate-600"
-              : "bg-white border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+              ? "bg-slate-900 border-white/5 text-slate-400 hover:text-white hover:bg-slate-800"
+              : "bg-white border-black/5 text-gray-500 hover:text-gray-900 hover:bg-gray-50"
           )}
           onClick={() => fileInputRef.current?.click()}
           disabled={!selectedGroupId || busy === "send" || isCrossGroup}
           title={fileDisabledReason}
         >
-          📎
+          <AttachmentIcon size={20} className="group-active:scale-90 transition-transform" />
         </button>
-        <textarea
-          ref={composerRef}
-          className={classNames(
-            "w-full rounded-3xl border px-4 py-3 text-sm resize-none min-h-[48px] max-h-[140px] transition-all focus:ring-2 focus:ring-offset-1",
-            isDark
-              ? "bg-slate-900 border-slate-700 text-slate-200 placeholder-slate-500 focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-offset-slate-900"
-              : "bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:ring-blue-100 focus:ring-offset-white"
-          )}
-          placeholder={isSmallScreen ? "Message…" : "Message… (@ to mention, Ctrl+Enter to send)"}
-          rows={1}
-          value={composerText}
-          onPaste={handlePaste}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          onBlur={() => setTimeout(() => setShowMentionMenu(false), 150)}
-          aria-label="Message input"
-        />
 
-        {/* Mention menu */}
-        {showMentionMenu && mentionSuggestions.length > 0 && (
-          <div
+        {/* Text Area Wrapper */}
+        <div className="flex-1 relative min-w-0">
+          <textarea
+            ref={composerRef}
             className={classNames(
-              "absolute bottom-full left-0 mb-2 w-56 max-h-48 overflow-auto rounded-xl border shadow-xl z-20",
-              isDark ? "border-slate-700 bg-slate-900" : "border-gray-200 bg-white"
+              "w-full rounded-2xl border px-4 py-2.5 text-sm resize-none min-h-[44px] max-h-[160px] transition-all",
+              "focus:outline-none focus:ring-2 focus:ring-offset-0 flex items-center",
+              isDark
+                ? "bg-white/5 border-white/5 text-slate-200 placeholder-slate-500 focus:ring-blue-500/40 focus:border-blue-500/50"
+                : "bg-black/5 border-transparent text-gray-900 placeholder-gray-400 focus:ring-blue-400/40 focus:border-blue-400/50"
             )}
-            role="listbox"
-            aria-label="Mention suggestions"
-          >
-            {mentionSuggestions.slice(0, 8).map((s, idx) => (
-              <button
-                key={s}
-                className={classNames(
-                  "w-full text-left px-4 py-2.5 text-sm transition-colors",
-                  isDark ? "text-slate-200" : "text-gray-700",
-                  idx === mentionSelectedIndex
-                    ? isDark ? "bg-slate-800" : "bg-blue-50 text-blue-700"
-                    : isDark ? "hover:bg-slate-800" : "hover:bg-gray-50"
-                )}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  selectMention(s);
-                  composerRef.current?.focus();
-                }}
-                onMouseEnter={() => setMentionSelectedIndex(idx)}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Importance toggle */}
-        <label
-          className={classNames(
-            "flex items-center gap-1.5 px-2 py-1.5 rounded-lg select-none min-h-[48px] transition-colors",
-            busy === "send" || !selectedGroupId
-              ? isDark
-                ? "text-slate-600"
-                : "text-gray-400"
-              : isDark
-                ? "text-slate-300 hover:bg-slate-800/60"
-                : "text-gray-700 hover:bg-gray-100"
-          )}
-          title="Important message: recipients must acknowledge it"
-        >
-          <input
-            type="checkbox"
-            className="h-4 w-4 accent-amber-500"
-            checked={isAttention}
-            onChange={(e) => setPriority(e.target.checked ? "attention" : "normal")}
-            disabled={busy === "send" || !selectedGroupId}
+            placeholder={isSmallScreen ? "Message…" : "Message… (@ mention, Ctrl+Enter send)"}
+            rows={1}
+            value={composerText}
+            onPaste={handlePaste}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            onBlur={() => setTimeout(() => setShowMentionMenu(false), 150)}
+            aria-label="Message input"
           />
-          <span className={classNames("text-xs font-semibold whitespace-nowrap hidden sm:inline", isAttention ? (isDark ? "text-amber-200" : "text-amber-700") : "")}>
-            Important
-          </span>
-        </label>
 
-        {/* Send button */}
+          {/* Mention menu */}
+          {showMentionMenu && mentionSuggestions.length > 0 && (
+            <div
+              className={classNames(
+                "absolute bottom-full left-0 mb-3 w-64 max-h-60 overflow-auto rounded-2xl border shadow-2xl z-30 animate-in fade-in zoom-in-95 duration-200",
+                isDark ? "border-white/10 bg-slate-900 backdrop-blur-xl" : "border-black/5 bg-white backdrop-blur-xl"
+              )}
+              role="listbox"
+            >
+              {mentionSuggestions.slice(0, 8).map((s, idx) => (
+                <button
+                  key={s}
+                  className={classNames(
+                    "w-full text-left px-4 py-3 text-sm transition-colors",
+                    isDark ? "text-slate-200 border-b border-white/5" : "text-gray-700 border-b border-black/5",
+                    idx === mentionSelectedIndex
+                      ? isDark ? "bg-blue-600/30 text-blue-300" : "bg-blue-50 text-blue-700 font-medium"
+                      : isDark ? "hover:bg-white/5" : "hover:bg-gray-50"
+                  )}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    selectMention(s);
+                    composerRef.current?.focus();
+                  }}
+                  onMouseEnter={() => setMentionSelectedIndex(idx)}
+                >
+                  <span className="opacity-60 mr-1">@</span>{s}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Importance Toggle - Modern Icon-based toggle */}
         <button
           className={classNames(
-            "rounded-full px-5 py-2.5 text-sm font-semibold disabled:opacity-50 min-h-[48px] shadow-sm transition-all flex items-center justify-center",
+            "w-11 h-11 rounded-2xl flex items-center justify-center transition-all flex-shrink-0 shadow-sm border group",
+            isAttention
+              ? isDark
+                ? "bg-amber-500/20 border-amber-500/30 text-amber-500"
+                : "bg-amber-100 border-amber-200 text-amber-600"
+              : isDark
+                ? "bg-slate-900 border-white/5 text-slate-500 hover:text-slate-300"
+                : "bg-white border-black/5 text-gray-400 hover:text-gray-600"
+          )}
+          onClick={() => setPriority(isAttention ? "normal" : "attention")}
+          disabled={busy === "send" || !selectedGroupId}
+          title="Mark as important (requires acknowledgement)"
+        >
+          <AlertIcon size={20} className={classNames("transition-transform group-active:scale-95", isAttention ? "animate-pulse" : "opacity-60")} />
+        </button>
+
+        {/* Send button - Using icon for modern feel */}
+        <button
+          className={classNames(
+            "w-11 h-11 sm:w-20 rounded-2xl flex items-center justify-center transition-all flex-shrink-0 shadow-sm disabled:opacity-50",
             busy === "send" || !canSend
               ? isDark ? "bg-slate-800 text-slate-500" : "bg-gray-100 text-gray-400"
-              : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20"
+              : "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/30 group active:scale-95"
           )}
           onClick={onSendMessage}
           disabled={busy === "send" || !canSend}
           aria-label="Send message"
         >
-          {busy === "send" ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Send"}
+          {busy === "send" ? (
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <>
+              <SendIcon size={20} className="sm:hidden" />
+              <span className="hidden sm:inline font-bold">Send</span>
+            </>
+          )}
         </button>
       </div>
     </footer>

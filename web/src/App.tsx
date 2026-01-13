@@ -807,36 +807,32 @@ export default function App() {
 
   return (
     <div
-      className={`h-full w-full relative overflow-hidden ${
-        isDark
+      className={`h-full w-full relative overflow-hidden ${isDark
           ? "bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"
           : "bg-gradient-to-br from-slate-50 via-white to-slate-100"
-      }`}
+        }`}
     >
       {/* Background orbs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
-          className={`absolute -top-32 -left-32 w-96 h-96 rounded-full liquid-blob ${
-            isDark
+          className={`absolute -top-32 -left-32 w-96 h-96 rounded-full liquid-blob ${isDark
               ? "bg-gradient-to-br from-cyan-500/20 via-cyan-600/10 to-transparent"
               : "bg-gradient-to-br from-cyan-400/25 via-cyan-500/15 to-transparent"
-          }`}
+            }`}
           style={{ filter: "blur(60px)" }}
         />
         <div
-          className={`absolute top-1/4 -right-24 w-80 h-80 rounded-full liquid-blob ${
-            isDark
+          className={`absolute top-1/4 -right-24 w-80 h-80 rounded-full liquid-blob ${isDark
               ? "bg-gradient-to-bl from-purple-500/15 via-indigo-600/10 to-transparent"
               : "bg-gradient-to-bl from-purple-400/20 via-indigo-500/10 to-transparent"
-          }`}
+            }`}
           style={{ filter: "blur(50px)", animationDelay: "-3s" }}
         />
         <div
-          className={`absolute -bottom-20 left-1/3 w-72 h-72 rounded-full liquid-blob ${
-            isDark
+          className={`absolute -bottom-20 left-1/3 w-72 h-72 rounded-full liquid-blob ${isDark
               ? "bg-gradient-to-tr from-blue-500/12 via-sky-600/8 to-transparent"
               : "bg-gradient-to-tr from-blue-400/15 via-sky-500/10 to-transparent"
-          }`}
+            }`}
           style={{ filter: "blur(45px)", animationDelay: "-5s" }}
         />
       </div>
@@ -865,9 +861,8 @@ export default function App() {
 
         {/* Main content */}
         <main
-          className={`h-full flex flex-col overflow-hidden backdrop-blur-sm ${
-            isDark ? "bg-slate-950/40" : "bg-white/60"
-          }`}
+          className={`h-full flex flex-col overflow-hidden backdrop-blur-sm ${isDark ? "bg-slate-950/40" : "bg-white/60"
+            }`}
         >
           <AppHeader
             isDark={isDark}
@@ -927,9 +922,8 @@ export default function App() {
           {/* Tab Content */}
           <div
             ref={contentRef}
-            className={`relative flex-1 min-h-0 flex flex-col overflow-hidden transition-opacity duration-150 ${
-              isTransitioning ? "opacity-0" : "opacity-100"
-            }`}
+            className={`relative flex-1 min-h-0 flex flex-col overflow-hidden transition-opacity duration-150 ${isTransitioning ? "opacity-0" : "opacity-100"
+              }`}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
@@ -937,23 +931,23 @@ export default function App() {
               className={`absolute inset-0 flex min-h-0 flex-col ${activeTab === "chat" ? "" : "invisible pointer-events-none"}`}
               aria-hidden={activeTab !== "chat"}
             >
-                <ChatTab
-                  isDark={isDark}
-                  isSmallScreen={isSmallScreen}
-                  selectedGroupId={selectedGroupId}
-                  groupLabelById={groupLabelById}
-                  actors={actors}
-                  groups={groups}
-                  destGroupId={sendGroupId}
-                  setDestGroupId={setDestGroupId}
-                  destGroupScopeLabel={destGroupScopeLabel}
-                  recipientActors={recipientActors}
-                  recipientActorsBusy={recipientActorsBusy}
-                  presenceAgents={groupContext?.presence?.agents || []}
-                  busy={busy}
-                  chatFilter={chatFilter}
-                  setChatFilter={setChatFilter}
-                  showSetupCard={showSetupCard}
+              <ChatTab
+                isDark={isDark}
+                isSmallScreen={isSmallScreen}
+                selectedGroupId={selectedGroupId}
+                groupLabelById={groupLabelById}
+                actors={actors}
+                groups={groups}
+                destGroupId={sendGroupId}
+                setDestGroupId={setDestGroupId}
+                destGroupScopeLabel={destGroupScopeLabel}
+                recipientActors={recipientActors}
+                recipientActorsBusy={recipientActorsBusy}
+                presenceAgents={groupContext?.presence?.agents || []}
+                busy={busy}
+                chatFilter={chatFilter}
+                setChatFilter={setChatFilter}
+                showSetupCard={showSetupCard}
                 needsScope={needsScope}
                 needsActors={needsActors}
                 needsStart={needsStart}
@@ -983,10 +977,10 @@ export default function App() {
                 chatWindow={
                   inChatWindow && chatWindow
                     ? {
-                        centerEventId: chatWindow.centerEventId,
-                        hasMoreBefore: chatWindow.hasMoreBefore,
-                        hasMoreAfter: chatWindow.hasMoreAfter,
-                      }
+                      centerEventId: chatWindow.centerEventId,
+                      hasMoreBefore: chatWindow.hasMoreBefore,
+                      hasMoreAfter: chatWindow.hasMoreAfter,
+                    }
                     : null
                 }
                 onExitChatWindow={() => {
@@ -1023,15 +1017,15 @@ export default function App() {
                 appendComposerFiles={handleAppendComposerFiles}
                 fileInputRef={fileInputRef}
                 composerRef={composerRef}
-                  composerText={composerText}
-                  setComposerText={setComposerText}
-                  priority={priority}
-                  setPriority={setPriority}
-                  onSendMessage={sendMessage}
-                  showMentionMenu={showMentionMenu}
-                  setShowMentionMenu={setShowMentionMenu}
-                  mentionSuggestions={mentionSuggestions}
-                  mentionSelectedIndex={mentionSelectedIndex}
+                composerText={composerText}
+                setComposerText={setComposerText}
+                priority={priority}
+                setPriority={setPriority}
+                onSendMessage={sendMessage}
+                showMentionMenu={showMentionMenu}
+                setShowMentionMenu={setShowMentionMenu}
+                mentionSuggestions={mentionSuggestions}
+                mentionSelectedIndex={mentionSelectedIndex}
                 setMentionSelectedIndex={setMentionSelectedIndex}
                 setMentionFilter={setMentionFilter}
                 onAppendRecipientToken={(token) =>
@@ -1061,6 +1055,7 @@ export default function App() {
                       termEpoch={actor ? getTermEpoch(actor.id) : 0}
                       busy={busy}
                       isDark={isDark}
+                      isSmallScreen={isSmallScreen}
                       isVisible={isVisible}
                       onToggleEnabled={() => actor && toggleActorEnabled(actor)}
                       onRelaunch={() => actor && relaunchActor(actor)}

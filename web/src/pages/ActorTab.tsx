@@ -10,6 +10,7 @@ export interface ActorTabProps {
   termEpoch: number;
   busy: string;
   isDark: boolean;
+  isSmallScreen: boolean;
   isVisible: boolean;
   onToggleEnabled: () => void;
   onRelaunch: () => void;
@@ -27,6 +28,7 @@ export function ActorTab({
   termEpoch,
   busy,
   isDark,
+  isSmallScreen,
   isVisible,
   onToggleEnabled,
   onRelaunch,
@@ -57,6 +59,7 @@ export function ActorTab({
         onInbox={onInbox}
         busy={busy}
         isDark={isDark}
+        isSmallScreen={isSmallScreen}
         onStatusChange={onStatusChange}
       />
     </Suspense>
