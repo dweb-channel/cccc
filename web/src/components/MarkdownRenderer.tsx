@@ -1,29 +1,11 @@
 import { useMemo, useEffect, useRef } from 'react';
 import MarkdownIt from 'markdown-it';
-import hljs from 'highlight.js';
 import { classNames } from '../utils/classNames';
 
 interface MarkdownRendererProps {
     content: string;
     isDark: boolean;
     className?: string;
-}
-
-// 语言名归一化，兼容常用别名
-function normalizeLang(langRaw: string): string {
-    if (!langRaw) return '';
-    const lang = langRaw.toLowerCase().trim();
-    switch (lang) {
-        case 'flutter':
-        case 'dartlang':
-            return 'dart';
-        case 'c++':
-            return 'cpp';
-        case 'kt':
-            return 'kotlin';
-        default:
-            return lang;
-    }
 }
 
 export function MarkdownRenderer({ content, isDark, className }: MarkdownRendererProps) {
@@ -35,25 +17,11 @@ export function MarkdownRenderer({ content, isDark, className }: MarkdownRendere
             linkify: true,
             typographer: true,
             breaks: true,
-            highlight: (str: string, langRaw: string): string => {
-                const lang = normalizeLang(langRaw);
-                let highlighted = '';
-                let finalLang = lang || 'plaintext';
+            highlight: (str: string, lang: string): string => {
+                const finalLang = lang?.toLowerCase().trim() || 'code';
+                const escaped = instance.utils.escapeHtml(str);
 
-                try {
-                    if (lang && hljs.getLanguage(lang)) {
-                        highlighted = hljs.highlight(str, { language: lang }).value;
-                    } else {
-                        const auto = hljs.highlightAuto(str);
-                        highlighted = auto.value;
-                        finalLang = auto.language || 'plaintext';
-                    }
-                } catch (e) {
-                    console.error('highlight error:', e);
-                    highlighted = instance.utils.escapeHtml(str);
-                }
-
-                // 注入复制按钮 HTML 结构
+                // 代码块带 Copy 按钮，无语法高亮
                 return (
                     '<div class="code-block-wrapper relative group">' +
                     '<div class="code-block-header flex items-center justify-between px-4 py-1.5 text-[10px] font-medium border-b border-gray-200/50 dark:border-white/5 bg-gray-50/50 dark:bg-white/5 rounded-t-lg">' +
@@ -63,7 +31,7 @@ export function MarkdownRenderer({ content, isDark, className }: MarkdownRendere
                     'Copy' +
                     '</button>' +
                     '</div>' +
-                    '<pre class="!mt-0 !rounded-t-none"><code class="hljs language-' + finalLang + '">' + highlighted + '</code></pre>' +
+                    '<pre class="!mt-0 !rounded-t-none"><code class="language-' + finalLang + '">' + escaped + '</code></pre>' +
                     '</div>'
                 );
             },
