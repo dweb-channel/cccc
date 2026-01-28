@@ -72,6 +72,8 @@ export function AgentTab({
   const [terminalReady, setTerminalReady] = useState(false);
   const terminalReadyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const outputFilterTailRef = useRef<string>("");
+  // Track last "waiting" line for Gemini CLI to avoid flooding terminal
+  const lastWaitingLineRef = useRef<string>("");
   const [activated, setActivated] = useState(false);
 
   // Best-effort terminal query responder state (per mounted actor tab).
@@ -429,7 +431,8 @@ export function AgentTab({
         // Note: we keep a tiny tail buffer so we can catch the escape sequence even if it spans
         // WebSocket frame boundaries.
         const seq = "\x1b[3J";
-        const repl = "\x1b[2J";
+        // Remove the sequence entirely, don't replace it with a screen clear.
+        const repl = "";
         const combined = `${outputFilterTailRef.current}${data || ""}`;
         const replaced = combined.split(seq).join(repl);
         let tail = "";
@@ -441,7 +444,34 @@ export function AgentTab({
           }
         }
         outputFilterTailRef.current = tail;
-        const safe = tail ? replaced.slice(0, -tail.length) : replaced;
+        let safe = tail ? replaced.slice(0, -tail.length) : replaced;
+
+        // Filter repeated "Continuing the Wait" lines from Gemini CLI
+        // Instead of printing a new line each second, overwrite the previous one
+        if (actor.runtime === "gemini") {
+          const waitingPattern = /Continuing the Wait \(esc to cancel, \d+m \d+s\)/;
+          const lines = safe.split(/(\r?\n)/);
+          const filtered: string[] = [];
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (waitingPattern.test(line)) {
+              // If we had a previous waiting line, move cursor up and clear
+              if (lastWaitingLineRef.current) {
+                filtered.push("\x1b[A\x1b[2K"); // Cursor up + clear line
+              }
+              lastWaitingLineRef.current = line;
+              filtered.push(line);
+            } else {
+              // Reset waiting state when we see other content
+              if (line.trim() && !/^\r?\n$/.test(line)) {
+                lastWaitingLineRef.current = "";
+              }
+              filtered.push(line);
+            }
+          }
+          safe = filtered.join("");
+        }
+
         try {
           term.write(safe);
         } catch (err) {
